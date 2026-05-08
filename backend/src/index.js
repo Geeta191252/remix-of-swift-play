@@ -1840,16 +1840,29 @@ async function aviatorPhaseTick(currency) {
       s.maxPayout = s.totalPool * (1 - profitPct / 100);
       // Initial cap: random fallback. Will be tightened dynamically.
       s.crashAt = randomCrashPoint();
+      s.manualOverride = false;
 
-      // Pre-rig: if even the smallest possible cashout (any bet × 1.01x) would already exceed budget,
-      // crash instantly. Common when 1 user bets and profit% >= ~0% → max mult < 1.
-      let maxBet = 0;
-      for (const k of Object.keys(s.bets)) {
-        if (s.bets[k].amount > maxBet) maxBet = s.bets[k].amount;
+      // Admin manual override: if queue non-empty, dequeue and use that crash point.
+      // This bypasses house-edge cap (admin is fully in control).
+      if (Array.isArray(s.manualQueue) && s.manualQueue.length > 0) {
+        const next = Number(s.manualQueue.shift());
+        if (!isNaN(next) && next >= 1.0) {
+          s.crashAt = Number(next.toFixed(2));
+          s.manualOverride = true;
+        }
       }
-      if (maxBet > 0) {
-        const dynCap = s.maxPayout / maxBet;
-        if (dynCap < s.crashAt) s.crashAt = Math.max(1.0, dynCap);
+
+      if (!s.manualOverride) {
+        // Pre-rig: if even the smallest possible cashout (any bet × 1.01x) would already exceed budget,
+        // crash instantly. Common when 1 user bets and profit% >= ~0% → max mult < 1.
+        let maxBet = 0;
+        for (const k of Object.keys(s.bets)) {
+          if (s.bets[k].amount > maxBet) maxBet = s.bets[k].amount;
+        }
+        if (maxBet > 0) {
+          const dynCap = s.maxPayout / maxBet;
+          if (dynCap < s.crashAt) s.crashAt = Math.max(1.0, dynCap);
+        }
       }
     }
   } else if (s.phase === "flying") {
