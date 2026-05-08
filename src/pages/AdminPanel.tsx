@@ -171,6 +171,7 @@ const AdminPanel = () => {
     } catch { /* ignore */ }
   };
 
+  const user = getTelegramUser();
   const isOwner = user?.id === OWNER_ID;
 
   const fetchAll = async () => {
