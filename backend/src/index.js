@@ -1952,7 +1952,7 @@ app.get("/api/aviator/state", (req, res) => {
 // POST /api/aviator/bet
 app.post("/api/aviator/bet", async (req, res) => {
   try {
-    const { userId, amount, currency, firstName } = req.body;
+    const { userId, amount, currency, firstName, slot } = req.body;
     const curr = currency === "star" ? "star" : "dollar";
     const s = aviatorState[curr];
     if (s.phase !== "betting") return res.status(400).json({ error: "Betting closed for this round" });
@@ -1966,7 +1966,9 @@ app.post("/api/aviator/bet", async (req, res) => {
     const winning = user[winField] || 0;
     if (wallet + winning < numAmt) return res.status(400).json({ error: "Insufficient balance" });
 
-    if (s.bets[user.telegramId]) return res.status(400).json({ error: "You already have a bet this round" });
+    const slotNum = slot === 2 ? 2 : 1;
+    const key = `${user.telegramId}:${slotNum}`;
+    if (s.bets[key]) return res.status(400).json({ error: `Slot ${slotNum} already has a bet this round` });
 
     const fromWallet = Math.min(wallet, numAmt);
     const fromWin = numAmt - fromWallet;
@@ -1974,7 +1976,9 @@ app.post("/api/aviator/bet", async (req, res) => {
     user[winField] = winning - fromWin;
     await user.save();
 
-    s.bets[user.telegramId] = {
+    s.bets[key] = {
+      userId: user.telegramId,
+      slot: slotNum,
       amount: numAmt,
       firstName: firstName || user.firstName || "Player",
       cashedOutAt: null,
@@ -1982,7 +1986,7 @@ app.post("/api/aviator/bet", async (req, res) => {
     };
     s.totalPool += numAmt;
 
-    res.json({ success: true, roundNumber: s.roundNumber });
+    res.json({ success: true, roundNumber: s.roundNumber, slot: slotNum });
   } catch (err) {
     console.error("Aviator bet error:", err);
     res.status(500).json({ error: "Failed to place bet" });
