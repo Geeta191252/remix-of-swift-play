@@ -302,7 +302,8 @@ export const placeAviatorBet = async (data: {
   amount: number;
   currency: CurrencyType;
   firstName?: string;
-}): Promise<{ success: boolean; roundNumber: number }> => {
+  slot?: 1 | 2;
+}): Promise<{ success: boolean; roundNumber: number; slot: number }> => {
   const res = await fetch(`${API_BASE_URL}/aviator/bet`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -313,11 +314,11 @@ export const placeAviatorBet = async (data: {
   return json;
 };
 
-export const cashOutAviator = async (userId: number | string, currency: CurrencyType): Promise<{ success: boolean; multiplier: number; winAmount: number }> => {
+export const cashOutAviator = async (userId: number | string, currency: CurrencyType, slot: 1 | 2 = 1): Promise<{ success: boolean; multiplier: number; winAmount: number }> => {
   const res = await fetch(`${API_BASE_URL}/aviator/cashout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, currency }),
+    body: JSON.stringify({ userId, currency, slot }),
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json?.error || "Failed to cash out");
