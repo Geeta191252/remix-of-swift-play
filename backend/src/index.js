@@ -2061,7 +2061,8 @@ app.post("/api/aviator/cashout", async (req, res) => {
       game: "aviator",
     });
 
-    // House-edge enforcement: keep at least profit% of pool.
+    // House-edge enforcement: keep at least profit% of pool. Skipped when admin manual override is active.
+    if (!s.manualOverride) {
     const profitPct = await getAviatorProfitPercent();
     const maxPayout = s.totalPool * (1 - profitPct / 100);
     let remainingExposure = 0;
