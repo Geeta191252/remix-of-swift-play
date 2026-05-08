@@ -1817,13 +1817,15 @@ async function getAviatorProfitPercent() {
   }
 }
 
-// Pick a fallback random crash multiplier (used when there are no bets, or as upper limit)
+// Pick a varied crash multiplier — biased low (1.2-1.99x mostly) with occasional 2-3x and rare big wins.
+// Pattern user wants: mostly small wins so users feel hopeful, occasional 2-3x, rare bigger.
 function randomCrashPoint() {
   const r = Math.random();
-  if (r < 0.30) return Number((1.01 + Math.random() * 0.45).toFixed(2));
-  if (r < 0.75) return Number((1.4 + Math.random() * 1.8).toFixed(2));
-  if (r < 0.93) return Number((3.2 + Math.random() * 4.5).toFixed(2));
-  return Number((8 + Math.random() * 12).toFixed(2));
+  if (r < 0.55) return Number((1.20 + Math.random() * 0.79).toFixed(2)); // 55% → 1.20–1.99x
+  if (r < 0.80) return Number((2.00 + Math.random() * 0.99).toFixed(2)); // 25% → 2.00–2.99x
+  if (r < 0.93) return Number((3.00 + Math.random() * 1.49).toFixed(2)); // 13% → 3.00–4.49x
+  if (r < 0.98) return Number((4.50 + Math.random() * 2.50).toFixed(2)); // 5%  → 4.50–7.00x
+  return Number((7.0 + Math.random() * 8.0).toFixed(2));                 // 2%  → 7–15x
 }
 
 async function aviatorPhaseTick(currency) {
