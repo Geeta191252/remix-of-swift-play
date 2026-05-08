@@ -1832,12 +1832,41 @@ async function aviatorPhaseTick(currency) {
       s.phase = "flying";
       s.flightStartTime = now;
       s.phaseStartTime = now;
-      // Initial cap is a random fallback. House-edge logic will pull it lower as cashouts happen.
+      // Cache profit% and max payout for this round (house keeps >= profit% of pool)
+      const profitPct = await getAviatorProfitPercent();
+      s.profitPct = profitPct;
+      s.maxPayout = s.totalPool * (1 - profitPct / 100);
+      // Initial cap: random fallback. Will be tightened dynamically.
       s.crashAt = randomCrashPoint();
+
+      // Pre-rig: if even the smallest possible cashout (any bet × 1.01x) would already exceed budget,
+      // crash instantly. Common when 1 user bets and profit% >= ~0% → max mult < 1.
+      let maxBet = 0;
+      for (const k of Object.keys(s.bets)) {
+        if (s.bets[k].amount > maxBet) maxBet = s.bets[k].amount;
+      }
+      if (maxBet > 0) {
+        const dynCap = s.maxPayout / maxBet;
+        if (dynCap < s.crashAt) s.crashAt = Math.max(1.0, dynCap);
+      }
     }
   } else if (s.phase === "flying") {
     const elapsed = now - s.flightStartTime;
     const m = aviatorMultiplierAt(elapsed);
+
+    // Dynamic house-edge cap: even if the largest remaining bettor cashes out NOW,
+    // total paid out must not exceed maxPayout. Tighten s.crashAt accordingly.
+    const remainingBudget = Math.max(0, (s.maxPayout || 0) - s.totalPaidOut);
+    let maxRemainingBet = 0;
+    for (const k of Object.keys(s.bets)) {
+      const b = s.bets[k];
+      if (!b.cashedOutAt && b.amount > maxRemainingBet) maxRemainingBet = b.amount;
+    }
+    if (maxRemainingBet > 0) {
+      const dynCap = Math.max(1.0, remainingBudget / maxRemainingBet);
+      if (dynCap < s.crashAt) s.crashAt = Number(dynCap.toFixed(2));
+    }
+
     if (m >= s.crashAt || elapsed >= AVIATOR_PHASE.flying) {
       // Crash now
       const finalCrash = Math.min(m, s.crashAt);
@@ -1872,6 +1901,7 @@ async function aviatorPhaseTick(currency) {
       s.bets = {};
       s.totalPool = 0;
       s.totalPaidOut = 0;
+      s.maxPayout = 0;
       s.crashAt = 1.0;
       s.flightStartTime = 0;
     }
