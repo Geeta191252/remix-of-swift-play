@@ -140,7 +140,7 @@ const AviatorGame = () => {
     }
 
     if (phase === "flying") {
-      if (audioUnlockedRef.current) playSound(startAudioRef.current);
+      playSound(startAudioRef.current);
       startTimeRef.current = performance.now();
       const animate = (now: number) => {
         const elapsed = (now - startTimeRef.current) / 1000;
