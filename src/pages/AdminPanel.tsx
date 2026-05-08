@@ -115,6 +115,7 @@ const AdminPanel = () => {
   const [manualQueue, setManualQueue] = useState<number[]>([]);
   const [manualActive, setManualActive] = useState(false);
   const [manualInput, setManualInput] = useState<string>("");
+  const [manualBulkInput, setManualBulkInput] = useState<string>("");
 
   const fetchManualQueue = async (curr: "dollar" | "star" = manualCurrency) => {
     try {
@@ -169,6 +170,34 @@ const AdminPanel = () => {
       });
       setManualQueue([]);
     } catch { /* ignore */ }
+  };
+
+  const setManualQueueBulk = async () => {
+    const parts = manualBulkInput
+      .split(/[\s,]+/)
+      .map((p) => p.replace(/x$/i, "").trim())
+      .filter(Boolean)
+      .map((p) => Number(p))
+      .filter((n) => isFinite(n) && n > 0 && n <= 100000);
+    if (parts.length === 0) {
+      toast({ title: "Invalid", description: "Enter values like 1, 3, 1, 2, 4" });
+      return;
+    }
+    try {
+      const r = await fetch(`${API_BASE_URL}/admin/aviator/manual/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerId: String(OWNER_ID), currency: manualCurrency, queue: parts }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setManualQueue(d.queue);
+        setManualBulkInput("");
+        toast({ title: "Queue set", description: `${d.queue.length} values queued in exact order` });
+      } else {
+        toast({ title: "Failed", description: d.error || "Could not set" });
+      }
+    } catch { toast({ title: "Network error", description: "Please retry" }); }
   };
 
   const user = getTelegramUser();
@@ -458,6 +487,33 @@ const AdminPanel = () => {
                   >
                     + Add
                   </button>
+                </div>
+
+                {/* Bulk set queue (exact order, replaces existing) */}
+                <div className="rounded-lg p-2 mb-3" style={{ background: "hsla(260, 40%, 12%, 0.6)", border: "1px dashed hsla(280, 60%, 50%, 0.4)" }}>
+                  <p className="text-[11px] font-bold mb-1.5" style={{ color: "hsl(45 90% 70%)" }}>
+                    📝 Bulk Set (exact order, replaces queue)
+                  </p>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      placeholder="e.g. 1, 3, 1, 2, 4"
+                      value={manualBulkInput}
+                      onChange={(e) => setManualBulkInput(e.target.value)}
+                      className="flex-1 rounded-lg px-3 py-2 text-sm font-bold outline-none"
+                      style={{ background: "hsla(260, 40%, 15%, 0.8)", color: "hsl(0 0% 95%)", border: "1px solid hsla(280, 60%, 50%, 0.3)" }}
+                    />
+                    <button
+                      onClick={setManualQueueBulk}
+                      className="px-4 py-2 rounded-lg text-xs font-bold"
+                      style={{ background: "hsl(45 90% 50%)", color: "hsl(260 70% 15%)" }}
+                    >
+                      Set
+                    </button>
+                  </div>
+                  <p className="text-[10px] mt-1" style={{ color: "hsl(0 0% 55%)" }}>
+                    Comma/space separated. Order preserved exactly.
+                  </p>
                 </div>
 
                 {/* Queue list */}
