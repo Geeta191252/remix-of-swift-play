@@ -169,17 +169,17 @@ const AviatorGame = () => {
 
   const progress = useMemo(() => {
     if (phase === "betting") return 0;
-    return Math.min(Math.max(Math.pow((multiplier - 1) / 2.9, 0.62), 0.04), 0.97);
+    return Math.min(Math.max(Math.pow((multiplier - 1) / 2.45, 0.58), 0.055), 0.97);
   }, [multiplier, phase]);
 
   const sX = 4;
   const sY = 92;
-  const c1X = 38;
-  const c1Y = 88;
-  const c2X = 62;
-  const c2Y = 50;
-  const eX = phase === "crashed" ? 110 : 90;
-  const eY = phase === "crashed" ? -8 : 14;
+  const c1X = 34;
+  const c1Y = 91;
+  const c2X = 66;
+  const c2Y = 42;
+  const eX = 92;
+  const eY = 12;
   const t = progress;
   const planeX = Math.pow(1 - t, 3) * sX + 3 * Math.pow(1 - t, 2) * t * c1X + 3 * (1 - t) * t * t * c2X + t * t * t * eX;
   const planeY = Math.pow(1 - t, 3) * sY + 3 * Math.pow(1 - t, 2) * t * c1Y + 3 * (1 - t) * t * t * c2Y + t * t * t * eY;
@@ -322,7 +322,7 @@ const AviatorGame = () => {
                 <motion.div
                   className="absolute z-30 pointer-events-none"
                   style={{ left: `${planeX}%`, top: `${planeY}%`, transform: "translate(-50%, -50%)" }}
-                  animate={phase === "crashed" ? { x: 190, y: -130, opacity: 0, scale: 0.85 } : { x: 0, y: 0, opacity: 1, scale: 1 }}
+                  animate={phase === "crashed" ? { x: 90, y: -72, opacity: 0.16, scale: 0.9 } : { x: 0, y: 0, opacity: 1, scale: 1 }}
                   transition={{ duration: phase === "crashed" ? 1.05 : 0.05, ease: "easeOut" }}
                 >
                   <div className="relative h-16 w-28 sm:h-20 sm:w-36 lg:h-28 lg:w-44">
