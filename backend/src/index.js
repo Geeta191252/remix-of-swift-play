@@ -1798,6 +1798,8 @@ function makeAviatorPool() {
     totalPaidOut: 0,             // running sum of cashouts
     userCooldown: {},            // { telegramId: cooldownUntilRound } — blocks wins for 4-6 rounds after a win
     manualQueue: [],             // FIFO queue of admin-set crash multipliers (used before any auto/random logic)
+    cumPool: 0,                  // cumulative pool across all rounds (for house-edge ledger)
+    cumPaid: 0,                  // cumulative payouts across all rounds
   };
 }
 const aviatorState = {
@@ -1815,13 +1817,15 @@ async function getAviatorProfitPercent() {
   }
 }
 
-// Pick a fallback random crash multiplier (used when there are no bets, or as upper limit)
+// Pick a varied crash multiplier — biased low (1.2-1.99x mostly) with occasional 2-3x and rare big wins.
+// Pattern user wants: mostly small wins so users feel hopeful, occasional 2-3x, rare bigger.
 function randomCrashPoint() {
   const r = Math.random();
-  if (r < 0.30) return Number((1.01 + Math.random() * 0.45).toFixed(2));
-  if (r < 0.75) return Number((1.4 + Math.random() * 1.8).toFixed(2));
-  if (r < 0.93) return Number((3.2 + Math.random() * 4.5).toFixed(2));
-  return Number((8 + Math.random() * 12).toFixed(2));
+  if (r < 0.55) return Number((1.20 + Math.random() * 0.79).toFixed(2)); // 55% → 1.20–1.99x
+  if (r < 0.80) return Number((2.00 + Math.random() * 0.99).toFixed(2)); // 25% → 2.00–2.99x
+  if (r < 0.93) return Number((3.00 + Math.random() * 1.49).toFixed(2)); // 13% → 3.00–4.49x
+  if (r < 0.98) return Number((4.50 + Math.random() * 2.50).toFixed(2)); // 5%  → 4.50–7.00x
+  return Number((7.0 + Math.random() * 8.0).toFixed(2));                 // 2%  → 7–15x
 }
 
 async function aviatorPhaseTick(currency) {
@@ -1834,16 +1838,15 @@ async function aviatorPhaseTick(currency) {
       s.phase = "flying";
       s.flightStartTime = now;
       s.phaseStartTime = now;
-      // Cache profit% and max payout for this round (house keeps >= profit% of pool)
+      // Profit% applies to CUMULATIVE pool (long-term house edge).
       const profitPct = await getAviatorProfitPercent();
       s.profitPct = profitPct;
-      s.maxPayout = s.totalPool * (1 - profitPct / 100);
-      // Initial cap: random fallback. Will be tightened dynamically.
+      s.cumPool = (s.cumPool || 0) + s.totalPool;
+      // Initial pick from varied pattern (1.2x–15x distribution)
       s.crashAt = randomCrashPoint();
       s.manualOverride = false;
 
       // Admin manual override: if queue non-empty, dequeue and use that crash point.
-      // This bypasses house-edge cap (admin is fully in control).
       if (Array.isArray(s.manualQueue) && s.manualQueue.length > 0) {
         const next = Number(s.manualQueue.shift());
         if (!isNaN(next) && next >= 1.0) {
@@ -1853,15 +1856,20 @@ async function aviatorPhaseTick(currency) {
       }
 
       if (!s.manualOverride) {
-        // Pre-rig: if even the smallest possible cashout (any bet × 1.01x) would already exceed budget,
-        // crash instantly. Common when 1 user bets and profit% >= ~0% → max mult < 1.
+        // Cumulative ledger: house must keep >= profitPct of cumulative pool over time.
+        const targetHouse = s.cumPool * (profitPct / 100);
+        const currentHouse = s.cumPool - (s.cumPaid || 0);
+        const slack = currentHouse - targetHouse; // <0 = house behind target
+
         let maxBet = 0;
         for (const k of Object.keys(s.bets)) {
           if (s.bets[k].amount > maxBet) maxBet = s.bets[k].amount;
         }
-        if (maxBet > 0) {
-          const dynCap = s.maxPayout / maxBet;
-          if (dynCap < s.crashAt) s.crashAt = Math.max(1.0, dynCap);
+        if (maxBet > 0 && slack < 0) {
+          // House behind → cap projected loss to half the deficit
+          const allowedLoss = Math.max(0, Math.abs(slack) * 0.5);
+          const safeMult = 1.0 + allowedLoss / maxBet;
+          if (safeMult < s.crashAt) s.crashAt = Math.max(1.0, Number(safeMult.toFixed(2)));
         }
       }
     }
@@ -1870,14 +1878,17 @@ async function aviatorPhaseTick(currency) {
     const m = aviatorMultiplierAt(elapsed);
 
     // Dynamic house-edge cap (skipped when admin manual override is active).
+    // Uses CUMULATIVE budget so individual rounds are allowed to lose if house is ahead overall.
     if (!s.manualOverride) {
-      const remainingBudget = Math.max(0, (s.maxPayout || 0) - s.totalPaidOut);
+      const cumBudget = (s.cumPool || 0) * (1 - (s.profitPct || 50) / 100);
+      const remainingBudget = Math.max(0, cumBudget - (s.cumPaid || 0));
       let maxRemainingBet = 0;
       for (const k of Object.keys(s.bets)) {
         const b = s.bets[k];
         if (!b.cashedOutAt && b.amount > maxRemainingBet) maxRemainingBet = b.amount;
       }
-      if (maxRemainingBet > 0) {
+      // Only tighten if even one cashout at current crashAt would bust cumulative budget.
+      if (maxRemainingBet > 0 && maxRemainingBet * s.crashAt > remainingBudget) {
         const dynCap = Math.max(1.0, remainingBudget / maxRemainingBet);
         if (dynCap < s.crashAt) s.crashAt = Number(dynCap.toFixed(2));
       }
@@ -2041,6 +2052,7 @@ app.post("/api/aviator/cashout", async (req, res) => {
     bet.cashedOutAt = Number(mult.toFixed(2));
     bet.winAmount = win;
     s.totalPaidOut += win;
+    s.cumPaid = (s.cumPaid || 0) + win;
 
     // Set cooldown: next 4-6 rounds this user can't win
     const cd = 4 + Math.floor(Math.random() * 3);
@@ -2061,25 +2073,22 @@ app.post("/api/aviator/cashout", async (req, res) => {
       game: "aviator",
     });
 
-    // House-edge enforcement: keep at least profit% of pool. Skipped when admin manual override is active.
+    // House-edge enforcement against CUMULATIVE budget. Skipped when manual override is active.
     if (!s.manualOverride) {
-    const profitPct = await getAviatorProfitPercent();
-    const maxPayout = s.totalPool * (1 - profitPct / 100);
-    let remainingExposure = 0;
-    for (const k of Object.keys(s.bets)) {
-      const b = s.bets[k];
-      if (!b.cashedOutAt) remainingExposure += b.amount * mult;
-    }
-    if (s.totalPaidOut >= maxPayout) {
-      s.crashAt = Number(mult.toFixed(2));
-    } else if (s.totalPaidOut + remainingExposure > maxPayout) {
-      const remainingBetSum = Object.values(s.bets).filter((b) => !b.cashedOutAt).reduce((a, b) => a + b.amount, 0);
-      if (remainingBetSum > 0) {
-        const targetMult = (maxPayout - s.totalPaidOut) / remainingBetSum;
-        const safeTarget = Math.max(1.01, Math.min(s.crashAt, Number(targetMult.toFixed(2))));
-        if (safeTarget < s.crashAt) s.crashAt = safeTarget;
+      const profitPct = s.profitPct || (await getAviatorProfitPercent());
+      const cumBudget = (s.cumPool || 0) * (1 - profitPct / 100);
+      const remainingBudget = cumBudget - (s.cumPaid || 0);
+      if (remainingBudget <= 0) {
+        // Cumulative budget exhausted → crash now
+        s.crashAt = Number(mult.toFixed(2));
+      } else {
+        const remainingBetSum = Object.values(s.bets).filter((b) => !b.cashedOutAt).reduce((a, b) => a + b.amount, 0);
+        if (remainingBetSum > 0 && remainingBetSum * s.crashAt > remainingBudget) {
+          const targetMult = remainingBudget / remainingBetSum;
+          const safeTarget = Math.max(1.01, Math.min(s.crashAt, Number(targetMult.toFixed(2))));
+          if (safeTarget < s.crashAt) s.crashAt = safeTarget;
+        }
       }
-    }
     }
 
     res.json({
