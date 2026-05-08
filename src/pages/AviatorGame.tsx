@@ -294,11 +294,9 @@ const AviatorGame = () => {
           </div>
 
           <div className="relative min-h-[310px] flex-1 rounded-lg border border-border overflow-hidden bg-card">
-            <div className="absolute inset-0 bg-background" />
-            <div className="absolute inset-0 opacity-85" style={{ backgroundImage: `url(${xAxis})`, backgroundSize: "100% 100%" }} />
-            <div className="absolute inset-0 opacity-65" style={{ backgroundImage: `url(${yAxis})`, backgroundSize: "100% 100%" }} />
-            <div className="absolute left-5 top-0 bottom-5 w-px bg-border" />
-            <div className="absolute left-5 right-0 bottom-5 h-px bg-border" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(220_40%_8%)_0%,_hsl(222_47%_4%)_100%)]" />
+            <div className="absolute left-5 top-0 bottom-5 w-px bg-border/40" />
+            <div className="absolute left-5 right-0 bottom-5 h-px bg-border/40" />
 
             {phase !== "betting" && (
               <svg className="absolute inset-x-5 bottom-5 top-4 w-[calc(100%-2.5rem)] h-[calc(100%-2.25rem)]" preserveAspectRatio="none" viewBox="0 0 100 100">
@@ -357,7 +355,7 @@ const AviatorGame = () => {
                 animate={phase === "crashed" ? { x: 190, y: -130, opacity: 0, scale: 0.85 } : { x: 0, y: 0, opacity: 1, scale: 1 }}
                 transition={{ duration: phase === "crashed" ? 1.05 : 0.05, ease: "easeOut" }}
               >
-                <img src={planeFrame} alt="" className="h-20 sm:h-28 w-32 sm:w-44 object-contain drop-shadow-[0_0_12px_hsl(var(--destructive))]" />
+                <img src={planeFrame} alt="" className={`h-20 sm:h-28 w-32 sm:w-44 object-contain ${phase === "crashed" ? "drop-shadow-[0_0_18px_hsl(0_85%_55%)]" : "drop-shadow-[0_0_14px_hsl(45_100%_55%)]"}`} />
               </motion.div>
             )}
           </div>
