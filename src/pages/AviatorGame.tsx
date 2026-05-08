@@ -518,12 +518,12 @@ const BetPanel = ({
       </div>
 
       {canCashOut ? (
-        <button onClick={cashOut} disabled={muted} className="w-full h-10 rounded-lg bg-gradient-to-b from-yellow-400 to-orange-500 text-black font-game text-base flex items-center justify-center gap-2 shadow-[inset_0_-2px_0_hsl(30_90%_30%)] disabled:opacity-70">
+        <button onClick={cashOut} disabled={muted} className="w-full h-7 rounded-md bg-gradient-to-b from-yellow-400 to-orange-500 text-black font-game text-xs flex items-center justify-center gap-2 shadow-[inset_0_-2px_0_hsl(30_90%_30%)] disabled:opacity-70">
           <span>CASH OUT</span>
           <span className="text-xs font-sans font-black">{(value * multiplier).toFixed(2)}</span>
         </button>
       ) : cashedOutAt ? (
-        <div className="w-full h-10 rounded-lg bg-primary text-primary-foreground font-game text-sm flex items-center justify-center gap-2 opacity-90">
+        <div className="w-full h-7 rounded-md bg-primary text-primary-foreground font-game text-xs flex items-center justify-center gap-2 opacity-90">
           <span>CASHED</span>
           <span className="text-xs">{cashedOutAt.toFixed(2)}x</span>
         </div>
@@ -531,7 +531,7 @@ const BetPanel = ({
         <button
           onClick={placeBet}
           disabled={muted || isWaiting || phase !== "betting"}
-          className="w-full h-10 rounded-lg bg-gradient-to-b from-[hsl(110_75%_55%)] to-[hsl(120_80%_38%)] text-white font-game text-base tracking-wider flex items-center justify-center gap-2 shadow-[inset_0_-3px_0_hsl(120_80%_25%),0_3px_12px_hsl(120_80%_40%/0.4)] disabled:opacity-70"
+          className="w-full h-7 rounded-md bg-gradient-to-b from-[hsl(110_75%_55%)] to-[hsl(120_80%_38%)] text-white font-game text-base tracking-wider flex items-center justify-center gap-2 shadow-[inset_0_-3px_0_hsl(120_80%_25%),0_3px_12px_hsl(120_80%_40%/0.4)] disabled:opacity-70"
         >
           <span>{isWaiting ? "CANCEL" : "PLACE BET"}</span>
           <svg viewBox="0 0 24 24" className="w-4 h-4 -rotate-12" fill="currentColor">
