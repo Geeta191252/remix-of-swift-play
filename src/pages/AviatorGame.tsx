@@ -46,13 +46,9 @@ const AviatorGame = () => {
   const tgUser = getTelegramUser();
 
   const [currency, setCurrency] = useState<CurrencyType>("dollar");
-  const [betAmount, setBetAmount] = useState(100);
   const [phase, setPhase] = useState<Phase>("betting");
   const [multiplier, setMultiplier] = useState(1);
   const [crashAt, setCrashAt] = useState(2);
-  const [hasBet, setHasBet] = useState(false);
-  const [pendingBet, setPendingBet] = useState(false);
-  const [cashedOutAt, setCashedOutAt] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(7);
   const [history, setHistory] = useState<number[]>([]);
   const [roundNumber, setRoundNumber] = useState<number>(0);
