@@ -122,13 +122,9 @@ const AviatorGame = () => {
         const s: AviatorState = await fetchAviatorState(currency);
         if (cancelled) return;
 
-        // New round detection — reset local bet flags
         if (s.roundNumber !== lastRoundRef.current) {
           lastRoundRef.current = s.roundNumber;
           setRoundNumber(s.roundNumber);
-          setHasBet(false);
-          setCashedOutAt(null);
-          setPendingBet(false);
         }
 
         // Phase transitions
@@ -140,9 +136,6 @@ const AviatorGame = () => {
           } else if (s.phase === "crashed") {
             if (startAudioRef.current) { startAudioRef.current.pause(); startAudioRef.current.currentTime = 0; }
             playSound(crashAudioRef.current);
-            if (hasBet && cashedOutAt === null) {
-              toast.error(`FLEW AWAY @ ${(s.crashAt ?? s.multiplier).toFixed(2)}x — Bet lost`);
-            }
           } else if (s.phase === "betting") {
             setMultiplier(1);
           }
@@ -158,7 +151,6 @@ const AviatorGame = () => {
           setCrashAt(s.crashAt);
           setMultiplier(s.crashAt);
         } else if (s.phase === "flying") {
-          // Sync to server multiplier (in case we drifted)
           setMultiplier((prev) => (s.multiplier > prev ? s.multiplier : prev));
         }
       } catch {
@@ -168,7 +160,7 @@ const AviatorGame = () => {
     poll();
     const id = window.setInterval(poll, 350);
     return () => { cancelled = true; window.clearInterval(id); };
-  }, [currency, hasBet, cashedOutAt, playSound]);
+  }, [currency, playSound]);
 
   // Refresh balance after round ends
   useEffect(() => {
