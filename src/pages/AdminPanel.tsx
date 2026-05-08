@@ -48,7 +48,19 @@ interface WithdrawalRequest {
   withdrawalNetwork?: string;
 }
 
-type Tab = "stats" | "users" | "withdrawals";
+type Tab = "stats" | "users" | "withdrawals" | "offers";
+
+interface AdminOffer {
+  _id: string;
+  title: string;
+  payAmount: number;
+  payCurrency: "star" | "dollar";
+  getAmount: number;
+  bonusLabel?: string;
+  valueLabel?: string;
+  active: boolean;
+  createdAt: string;
+}
 
 const AdminPanel = () => {
   const navigate = useNavigate();
