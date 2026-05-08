@@ -80,6 +80,20 @@ const AdminPanel = () => {
   const [adjusting, setAdjusting] = useState(false);
   const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
 
+  // Offers state
+  const [offers, setOffers] = useState<AdminOffer[]>([]);
+  const [offerForm, setOfferForm] = useState({
+    title: "",
+    payAmount: "",
+    payCurrency: "star" as "star" | "dollar",
+    getAmount: "",
+    bonusLabel: "",
+    valueLabel: "",
+  });
+  const [creatingOffer, setCreatingOffer] = useState(false);
+  const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
+  const [deletingOfferId, setDeletingOfferId] = useState<string | null>(null);
+
   // Aviator profit %
   const [aviatorProfit, setAviatorProfit] = useState<number>(50);
   const [aviatorProfitInput, setAviatorProfitInput] = useState<string>("50");
