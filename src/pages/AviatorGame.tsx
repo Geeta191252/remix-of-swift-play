@@ -355,7 +355,7 @@ const AviatorGame = () => {
                 animate={phase === "crashed" ? { x: 190, y: -130, opacity: 0, scale: 0.85 } : { x: 0, y: 0, opacity: 1, scale: 1 }}
                 transition={{ duration: phase === "crashed" ? 1.05 : 0.05, ease: "easeOut" }}
               >
-                <img src={planeFrame} alt="" className="h-20 sm:h-28 w-32 sm:w-44 object-contain drop-shadow-[0_0_12px_hsl(var(--destructive))]" />
+                <img src={planeFrame} alt="" className={`h-20 sm:h-28 w-32 sm:w-44 object-contain ${phase === "crashed" ? "drop-shadow-[0_0_18px_hsl(0_85%_55%)]" : "drop-shadow-[0_0_14px_hsl(45_100%_55%)]"}`} />
               </motion.div>
             )}
           </div>
