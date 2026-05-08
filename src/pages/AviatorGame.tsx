@@ -141,10 +141,21 @@ const AviatorGame = () => {
     }
   }, [phase, hasBet, cashedOutAt, multiplier, betAmount, currency, refreshBalance]);
 
-  // Plane/rocket position based on multiplier (curve)
-  const progress = Math.min((multiplier - 1) / 4, 1); // 0 to 1 over first 5x
-  const planeX = 8 + progress * 70; // %
-  const planeY = 75 - progress * 60; // % (from bottom, but using top)
+  // Plane/rocket position based on multiplier (smooth curve from bottom-left to top-right)
+  const progress = Math.min((multiplier - 1) / 5, 0.95); // 0 to 0.95
+  // Quadratic curve points (in % of arena)
+  const startX = 5, startY = 95;
+  const endX = 88, endY = 12;
+  // Control point for the curve (creates the upward arc)
+  const ctrlX = 50, ctrlY = 95;
+  // Bezier point at progress t
+  const t = progress;
+  const planeX = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * ctrlX + t * t * endX;
+  const planeY = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * ctrlY + t * t * endY;
+  // Tangent angle (derivative of bezier) for rocket rotation
+  const dx = 2 * (1 - t) * (ctrlX - startX) + 2 * t * (endX - ctrlX);
+  const dy = 2 * (1 - t) * (ctrlY - startY) + 2 * t * (endY - ctrlY);
+  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
   const userName = tgUser?.first_name || tgUser?.username || "Player";
 
@@ -242,22 +253,33 @@ const AviatorGame = () => {
             ))}
           </div>
 
-          {/* Trail SVG */}
+          {/* Trail SVG — quadratic bezier matching rocket position */}
           {phase === "flying" && (
-            <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
               <defs>
-                <linearGradient id="trail" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="hsl(310, 80%, 60%)" stopOpacity="0" />
-                  <stop offset="50%" stopColor="hsl(310, 90%, 65%)" stopOpacity="0.8" />
-                  <stop offset="100%" stopColor="hsl(45, 95%, 60%)" stopOpacity="1" />
+                <linearGradient id="trailGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="hsl(310, 90%, 55%)" stopOpacity="0.1" />
+                  <stop offset="40%" stopColor="hsl(320, 95%, 60%)" stopOpacity="0.7" />
+                  <stop offset="100%" stopColor="hsl(45, 100%, 65%)" stopOpacity="1" />
+                </linearGradient>
+                <linearGradient id="trailFill" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="hsl(310, 90%, 50%)" stopOpacity="0.05" />
+                  <stop offset="100%" stopColor="hsl(310, 90%, 60%)" stopOpacity="0.25" />
                 </linearGradient>
               </defs>
+              {/* Filled area under curve for glow effect */}
               <path
-                d={`M 8 92 Q ${planeX * 0.5} 92, ${planeX} ${planeY}`}
-                stroke="url(#trail)"
-                strokeWidth="1.5"
+                d={`M ${startX} ${startY} Q ${ctrlX} ${ctrlY}, ${planeX} ${planeY} L ${planeX} 100 L ${startX} 100 Z`}
+                fill="url(#trailFill)"
+              />
+              {/* Main trail line */}
+              <path
+                d={`M ${startX} ${startY} Q ${ctrlX} ${ctrlY}, ${planeX} ${planeY}`}
+                stroke="url(#trailGrad)"
+                strokeWidth="1.2"
+                strokeLinecap="round"
                 fill="none"
-                style={{ filter: "drop-shadow(0 0 4px hsl(310 90% 60%))" }}
+                style={{ filter: "drop-shadow(0 0 1.5px hsl(310 95% 60%))" }}
               />
             </svg>
           )}
@@ -297,26 +319,30 @@ const AviatorGame = () => {
             )}
           </div>
 
-          {/* Rocket */}
+          {/* Rocket — sits at the tip of the trail, rotated along curve tangent */}
           {phase === "flying" && (
-            <motion.div
-              className="absolute"
+            <div
+              className="absolute pointer-events-none"
               style={{
                 left: `${planeX}%`,
                 top: `${planeY}%`,
-                transform: "translate(-50%, -50%)",
+                transform: `translate(-50%, -50%) rotate(${angle - 90}deg)`,
+                transition: "left 0.05s linear, top 0.05s linear",
               }}
-              animate={{ y: [0, -3, 0] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
             >
-              <div className="text-5xl" style={{ filter: "drop-shadow(0 0 10px hsl(310 90% 60%))", transform: "rotate(-30deg)" }}>
+              <motion.div
+                animate={{ y: [0, -2, 0] }}
+                transition={{ duration: 0.4, repeat: Infinity }}
+                className="text-5xl"
+                style={{ filter: "drop-shadow(0 0 12px hsl(45 95% 60%)) drop-shadow(0 0 20px hsl(310 90% 60%))" }}
+              >
                 🚀
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           )}
           {phase === "crashed" && (
             <motion.div
-              className="absolute"
+              className="absolute pointer-events-none"
               style={{ left: `${planeX}%`, top: `${planeY}%`, transform: "translate(-50%, -50%)" }}
               animate={{ y: 200, rotate: 180, opacity: 0 }}
               transition={{ duration: 1.2 }}
