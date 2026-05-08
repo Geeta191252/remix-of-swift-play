@@ -1878,8 +1878,9 @@ async function aviatorPhaseTick(currency) {
 
       // Persist losing bets as bet transactions; winners already got 'win' tx on cashout
       try {
-        for (const tgId of Object.keys(s.bets)) {
-          const b = s.bets[tgId];
+        for (const key of Object.keys(s.bets)) {
+          const b = s.bets[key];
+          const tgId = b.userId || Number(String(key).split(":")[0]);
           if (b.amount > 0) {
             await Transaction.create({
               telegramId: Number(tgId),
