@@ -421,6 +421,7 @@ const AdminPanel = () => {
     { key: "stats", label: "Stats", icon: <Star className="h-4 w-4" /> },
     { key: "users", label: "Users", icon: <Users className="h-4 w-4" /> },
     { key: "withdrawals", label: "Withdrawals", icon: <CreditCard className="h-4 w-4" /> },
+    { key: "offers", label: "Offers", icon: <Tag className="h-4 w-4" /> },
   ];
 
   return (
