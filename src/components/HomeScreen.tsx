@@ -8,6 +8,7 @@ import BottomNav from "./BottomNav";
 import EarnScreen from "./EarnScreen";
 import FriendsScreen from "./FriendsScreen";
 import WalletScreen from "./WalletScreen";
+import MarketScreen from "./MarketScreen";
 
 import greedyKingThumb from "@/assets/greedy-king-thumb.png";
 import gameDice from "@/assets/game-dice.jpg";
