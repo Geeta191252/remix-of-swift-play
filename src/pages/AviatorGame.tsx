@@ -348,30 +348,36 @@ const AviatorGame = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <BetPanel
               title="BET"
-              betAmount={betAmount}
-              setBetAmount={setBetAmount}
+              defaultAmount={100}
               phase={phase}
-              hasBet={hasBet}
-              cashedOutAt={cashedOutAt}
               multiplier={multiplier}
-              placeBet={placeBet}
-              cashOut={cashOut}
+              roundNumber={roundNumber}
               currency={currency}
               setCurrency={setCurrency}
+              tgUserId={tgUser?.id}
+              userName={userName}
+              balance={balance}
+              refreshBalance={refreshBalance}
+              unlockAudio={unlockAudio}
+              cashoutAudioRef={cashoutAudioRef}
+              playSound={playSound}
             />
             <BetPanel
               title="AUTO"
-              betAmount={betAmount}
-              setBetAmount={setBetAmount}
+              defaultAmount={50}
               phase={phase}
-              hasBet={hasBet}
-              cashedOutAt={cashedOutAt}
               multiplier={multiplier}
-              placeBet={placeBet}
-              cashOut={cashOut}
+              roundNumber={roundNumber}
               currency={currency}
               setCurrency={setCurrency}
-              muted
+              tgUserId={tgUser?.id}
+              userName={userName}
+              balance={balance}
+              refreshBalance={refreshBalance}
+              unlockAudio={unlockAudio}
+              cashoutAudioRef={cashoutAudioRef}
+              playSound={playSound}
+              auto
             />
           </div>
 
