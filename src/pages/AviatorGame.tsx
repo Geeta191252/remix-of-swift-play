@@ -470,7 +470,7 @@ const BetPanel = ({
     if (!tgUserId) return toast.error("Open inside Telegram to bet");
     setPendingBet(true);
     try {
-      await placeAviatorBet({ userId: tgUserId, amount: betAmount, currency, firstName: userName });
+      await placeAviatorBet({ userId: tgUserId, amount: betAmount, currency, firstName: userName, slot: auto ? 2 : 1 });
       setHasBet(true);
       setCashedOutAt(null);
       refreshBalance();
