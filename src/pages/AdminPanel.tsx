@@ -68,6 +68,49 @@ const AdminPanel = () => {
   const [adjusting, setAdjusting] = useState(false);
   const [processingWithdrawal, setProcessingWithdrawal] = useState<string | null>(null);
 
+  // Aviator profit %
+  const [aviatorProfit, setAviatorProfit] = useState<number>(50);
+  const [aviatorProfitInput, setAviatorProfitInput] = useState<string>("50");
+  const [savingProfit, setSavingProfit] = useState(false);
+
+  const fetchAviatorProfit = async () => {
+    try {
+      const r = await fetch(`${API_BASE_URL}/admin/aviator/profit?ownerId=${OWNER_ID}`);
+      if (r.ok) {
+        const d = await r.json();
+        setAviatorProfit(d.percent);
+        setAviatorProfitInput(String(d.percent));
+      }
+    } catch (e) { /* ignore */ }
+  };
+
+  const saveAviatorProfit = async () => {
+    const num = Number(aviatorProfitInput);
+    if (isNaN(num) || num < 0 || num > 95) {
+      toast({ title: "Invalid value", description: "Enter a number between 0 and 95" });
+      return;
+    }
+    setSavingProfit(true);
+    try {
+      const r = await fetch(`${API_BASE_URL}/admin/aviator/profit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerId: String(OWNER_ID), percent: num }),
+      });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        setAviatorProfit(d.percent);
+        toast({ title: "Updated", description: `Aviator profit set to ${d.percent}%` });
+      } else {
+        toast({ title: "Failed", description: d.error || "Could not update" });
+      }
+    } catch {
+      toast({ title: "Network error", description: "Please retry" });
+    }
+    setSavingProfit(false);
+  };
+
+
   const user = getTelegramUser();
   const isOwner = user?.id === OWNER_ID;
 
@@ -99,7 +142,7 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    if (isOwner) fetchAll();
+    if (isOwner) { fetchAll(); fetchAviatorProfit(); }
   }, []);
 
   const handleAdjust = async () => {
@@ -253,6 +296,40 @@ const AdminPanel = () => {
                   <p className="text-2xl font-bold" style={{ color: "hsl(0 0% 95%)" }}>{stats.totalUsers}</p>
                   <p className="text-xs" style={{ color: "hsl(0 0% 60%)" }}>Total Users</p>
                 </motion.div>
+              </div>
+
+              {/* Aviator profit control */}
+              <div className="rounded-2xl p-4" style={{
+                background: "linear-gradient(135deg, hsla(350, 80%, 45%, 0.18), hsla(15, 80%, 45%, 0.18))",
+                border: "1px solid hsla(350, 80%, 50%, 0.35)",
+              }}>
+                <h2 className="font-bold text-sm mb-2" style={{ color: "hsl(45 90% 70%)" }}>✈️ Aviator House Profit</h2>
+                <p className="text-xs mb-3" style={{ color: "hsl(0 0% 70%)" }}>
+                  Current: <span className="font-bold" style={{ color: "hsl(350 90% 65%)" }}>{aviatorProfit}%</span> kept by house each round.
+                </p>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="number"
+                    min={0}
+                    max={95}
+                    value={aviatorProfitInput}
+                    onChange={(e) => setAviatorProfitInput(e.target.value)}
+                    className="flex-1 rounded-lg px-3 py-2 text-sm font-bold outline-none"
+                    style={{ background: "hsla(260, 40%, 15%, 0.8)", color: "hsl(0 0% 95%)", border: "1px solid hsla(45, 60%, 50%, 0.3)" }}
+                  />
+                  <span className="text-sm font-bold" style={{ color: "hsl(45 90% 70%)" }}>%</span>
+                  <button
+                    onClick={saveAviatorProfit}
+                    disabled={savingProfit}
+                    className="px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
+                    style={{ background: "hsl(350 80% 50%)", color: "white" }}
+                  >
+                    {savingProfit ? "Saving…" : "Save"}
+                  </button>
+                </div>
+                <p className="text-[10px] mt-2" style={{ color: "hsl(0 0% 55%)" }}>
+                  Example: 50% means if total bets are $100, total cashouts are capped at $50.
+                </p>
               </div>
 
               {/* Recent Deposits */}

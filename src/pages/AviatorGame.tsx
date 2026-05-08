@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronDown, ClipboardList, Menu, MessageCircle, Plus, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBalanceContext } from "@/contexts/BalanceContext";
-import { getTelegramUser, reportGameResult, type CurrencyType } from "@/lib/telegram";
+import { getTelegramUser, type CurrencyType, fetchAviatorState, placeAviatorBet, cashOutAviator, type AviatorState } from "@/lib/telegram";
 import { toast } from "sonner";
 import logoImg from "@/assets/aviator/logo.png";
 import planeImg from "@/assets/aviator/plane.png";
@@ -26,25 +26,14 @@ type BetRow = {
   cashout: number | null;
 };
 
-const PRESETS = [10, 25, 50, 100, 250, 500, 1000];
+
 const PLANE_FRAMES = [plane0, plane1, plane2, plane3];
 
-const seededRows: BetRow[] = [
-  { user: "A***7", amount: 420, multiplier: 2.14, cashout: 898.8 },
-  { user: "R***2", amount: 100, multiplier: null, cashout: null },
-  { user: "K***9", amount: 750, multiplier: 1.64, cashout: 1230 },
-  { user: "M***4", amount: 250, multiplier: null, cashout: null },
-  { user: "S***1", amount: 1000, multiplier: 3.08, cashout: 3080 },
-  { user: "D***8", amount: 150, multiplier: null, cashout: null },
-];
-
-const generateCrashPoint = () => {
-  const r = Math.random();
-  if (r < 0.15) return Number((1 + Math.random() * 0.35).toFixed(2));
-  if (r < 0.65) return Number((1.35 + Math.random() * 1.75).toFixed(2));
-  if (r < 0.9) return Number((3.1 + Math.random() * 4.8).toFixed(2));
-  return Number((8 + Math.random() * 12).toFixed(2));
+const PRESETS_BY_CURRENCY: Record<CurrencyType, number[]> = {
+  dollar: [1, 5, 10, 25, 50, 100, 250],
+  star: [10, 25, 50, 100, 250, 500, 1000],
 };
+
 
 const formatMoney = (value: number, currency: CurrencyType) => {
   if (currency === "star") return `⭐${Number(value.toFixed(2))}`;
@@ -62,17 +51,22 @@ const AviatorGame = () => {
   const [multiplier, setMultiplier] = useState(1);
   const [crashAt, setCrashAt] = useState(2);
   const [hasBet, setHasBet] = useState(false);
+  const [pendingBet, setPendingBet] = useState(false);
   const [cashedOutAt, setCashedOutAt] = useState<number | null>(null);
-  const [countdown, setCountdown] = useState(5);
-  const [history, setHistory] = useState<number[]>([1.28, 2.45, 8.71, 1.04, 3.23, 1.61, 5.92, 2.02, 1.19, 12.4]);
+  const [countdown, setCountdown] = useState(7);
+  const [history, setHistory] = useState<number[]>([]);
+  const [roundNumber, setRoundNumber] = useState<number>(0);
+  const [serverBets, setServerBets] = useState<BetRow[]>([]);
+  const [totalPlayers, setTotalPlayers] = useState(0);
 
   const startTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
-  const bgAudioRef = useRef<HTMLAudioElement | null>(null);
   const startAudioRef = useRef<HTMLAudioElement | null>(null);
   const crashAudioRef = useRef<HTMLAudioElement | null>(null);
   const cashoutAudioRef = useRef<HTMLAudioElement | null>(null);
   const audioUnlockedRef = useRef(false);
+  const lastPhaseRef = useRef<Phase>("betting");
+  const lastRoundRef = useRef<number>(0);
 
   const totalDollar = dollarBalance + dollarWinning;
   const totalStar = starBalance + starWinning;
@@ -93,7 +87,6 @@ const AviatorGame = () => {
     startAudioRef.current = new Audio("/sounds/aviator/game-start.mp3");
     crashAudioRef.current = new Audio("/sounds/aviator/plane-crash.mp3");
     cashoutAudioRef.current = new Audio("/sounds/aviator/cashout.mp3");
-
     [startAudioRef, crashAudioRef, cashoutAudioRef].forEach((ref) => {
       if (ref.current) {
         ref.current.preload = "auto";
@@ -101,75 +94,90 @@ const AviatorGame = () => {
         ref.current.load();
       }
     });
-
     return () => {
       [startAudioRef, crashAudioRef, cashoutAudioRef].forEach((ref) => {
-        if (ref.current) {
-          ref.current.pause();
-          ref.current.src = "";
-        }
+        if (ref.current) { ref.current.pause(); ref.current.src = ""; }
       });
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []);
 
+  // Smooth multiplier interpolation while flying (between server polls)
   useEffect(() => {
-    if (phase === "betting") {
-      if (startAudioRef.current) { startAudioRef.current.pause(); startAudioRef.current.currentTime = 0; }
-      setMultiplier(1);
-      setCashedOutAt(null);
-      setCountdown(5);
-      const tick = window.setInterval(() => {
-        setCountdown((current) => {
-          if (current <= 1) {
-            window.clearInterval(tick);
-            setCrashAt(generateCrashPoint());
-            setPhase("flying");
-            return 0;
-          }
-          return current - 1;
-        });
-      }, 1000);
-      return () => window.clearInterval(tick);
+    if (phase !== "flying") {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      return;
     }
-
-    if (phase === "flying") {
-      playSound(startAudioRef.current);
-      startTimeRef.current = performance.now();
-      const animate = (now: number) => {
-        const elapsed = (now - startTimeRef.current) / 1000;
-        const nextMultiplier = Math.pow(1.075, elapsed * 1.8);
-        if (nextMultiplier >= crashAt) {
-          setMultiplier(crashAt);
-          setPhase("crashed");
-          return;
-        }
-        setMultiplier(nextMultiplier);
-        rafRef.current = requestAnimationFrame(animate);
-      };
+    const animate = (now: number) => {
+      const elapsed = (now - startTimeRef.current) / 1000;
+      const next = Math.pow(1.075, elapsed * 1.8);
+      setMultiplier((prev) => (next > prev ? next : prev));
       rafRef.current = requestAnimationFrame(animate);
-      return () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      };
-    }
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [phase]);
 
-    if (phase === "crashed") {
-      if (startAudioRef.current) { startAudioRef.current.pause(); startAudioRef.current.currentTime = 0; }
-      playSound(crashAudioRef.current);
-      if (hasBet && cashedOutAt === null) {
-        toast.error(`FLEW AWAY @ ${crashAt.toFixed(2)}x — Bet lost`);
-        reportGameResult({ betAmount, winAmount: 0, currency, game: "aviator" })
-          .then(() => refreshBalance())
-          .catch(() => undefined);
+  // Poll server for game state
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const s: AviatorState = await fetchAviatorState(currency);
+        if (cancelled) return;
+
+        // New round detection — reset local bet flags
+        if (s.roundNumber !== lastRoundRef.current) {
+          lastRoundRef.current = s.roundNumber;
+          setRoundNumber(s.roundNumber);
+          setHasBet(false);
+          setCashedOutAt(null);
+          setPendingBet(false);
+        }
+
+        // Phase transitions
+        if (s.phase !== lastPhaseRef.current) {
+          if (s.phase === "flying") {
+            startTimeRef.current = performance.now();
+            setMultiplier(1);
+            playSound(startAudioRef.current);
+          } else if (s.phase === "crashed") {
+            if (startAudioRef.current) { startAudioRef.current.pause(); startAudioRef.current.currentTime = 0; }
+            playSound(crashAudioRef.current);
+            if (hasBet && cashedOutAt === null) {
+              toast.error(`FLEW AWAY @ ${(s.crashAt ?? s.multiplier).toFixed(2)}x — Bet lost`);
+            }
+          } else if (s.phase === "betting") {
+            setMultiplier(1);
+          }
+          lastPhaseRef.current = s.phase;
+        }
+
+        setPhase(s.phase);
+        setCountdown(s.timeLeft);
+        setHistory(s.history || []);
+        setServerBets(s.bets || []);
+        setTotalPlayers(s.totalPlayers || 0);
+        if (s.phase === "crashed" && s.crashAt) {
+          setCrashAt(s.crashAt);
+          setMultiplier(s.crashAt);
+        } else if (s.phase === "flying") {
+          // Sync to server multiplier (in case we drifted)
+          setMultiplier((prev) => (s.multiplier > prev ? s.multiplier : prev));
+        }
+      } catch {
+        // ignore transient errors
       }
-      setHistory((items) => [Number(crashAt.toFixed(2)), ...items].slice(0, 18));
-      const timeout = window.setTimeout(() => {
-        setHasBet(false);
-        setPhase("betting");
-      }, 3000);
-      return () => window.clearTimeout(timeout);
-    }
-  }, [betAmount, cashedOutAt, crashAt, currency, hasBet, phase, playSound, refreshBalance]);
+    };
+    poll();
+    const id = window.setInterval(poll, 350);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [currency, hasBet, cashedOutAt, playSound]);
+
+  // Refresh balance after round ends
+  useEffect(() => {
+    if (phase === "crashed") refreshBalance();
+  }, [phase, refreshBalance]);
 
   const progress = useMemo(() => {
     if (phase === "betting") return 0;
@@ -197,42 +205,59 @@ const AviatorGame = () => {
   const trailFillPath = `${trailPath} L ${planeX} 91 L ${sX} 91 Z`;
 
   const displayedBets = useMemo(() => {
-    const active: BetRow[] = hasBet
-      ? [{ user: userName, amount: betAmount, multiplier: cashedOutAt, cashout: cashedOutAt ? betAmount * cashedOutAt : null }]
+    const mine: BetRow[] = hasBet
+      ? [{ user: `${userName} (you)`, amount: betAmount, multiplier: cashedOutAt, cashout: cashedOutAt ? betAmount * cashedOutAt : null }]
       : [];
-    return [...active, ...seededRows];
-  }, [betAmount, cashedOutAt, hasBet, userName]);
+    return [...mine, ...serverBets];
+  }, [betAmount, cashedOutAt, hasBet, userName, serverBets]);
 
-  const placeBet = () => {
+  const placeBet = useCallback(async () => {
     unlockAudio();
     if (phase !== "betting") return toast.error("Wait for next round");
     if (betAmount <= 0) return toast.error("Enter valid amount");
     if (betAmount > balance) return toast.error("Insufficient balance");
-    setHasBet(true);
-    toast.success(`Bet placed: ${formatMoney(betAmount, currency)}`);
-  };
+    if (hasBet || pendingBet) return;
+    if (!tgUser?.id) return toast.error("Open inside Telegram to bet");
+    setPendingBet(true);
+    try {
+      await placeAviatorBet({
+        userId: tgUser.id,
+        amount: betAmount,
+        currency,
+        firstName: userName,
+      });
+      setHasBet(true);
+      setCashedOutAt(null);
+      refreshBalance();
+      toast.success(`Bet placed: ${formatMoney(betAmount, currency)}`);
+    } catch (e) {
+      toast.error((e as Error).message || "Failed to place bet");
+    } finally {
+      setPendingBet(false);
+    }
+  }, [unlockAudio, phase, betAmount, balance, hasBet, pendingBet, tgUser, currency, userName, refreshBalance]);
 
   const cashOut = useCallback(async () => {
     unlockAudio();
     if (phase !== "flying" || !hasBet || cashedOutAt !== null) return;
-    const cashedAt = multiplier;
-    const win = Number((betAmount * cashedAt).toFixed(2));
-    setCashedOutAt(cashedAt);
-    playSound(cashoutAudioRef.current);
-    toast.success(`You have cashed out @ ${cashedAt.toFixed(2)}x — ${formatMoney(win, currency)}`);
+    if (!tgUser?.id) return;
     try {
-      await reportGameResult({ betAmount, winAmount: win, currency, game: "aviator" });
+      const result = await cashOutAviator(tgUser.id, currency);
+      setCashedOutAt(result.multiplier);
+      playSound(cashoutAudioRef.current);
+      toast.success(`Cashed out @ ${result.multiplier.toFixed(2)}x — ${formatMoney(result.winAmount, currency)}`);
       refreshBalance();
-    } catch (error) {
-      console.error(error);
+    } catch (e) {
+      toast.error((e as Error).message || "Cashout failed");
     }
-  }, [betAmount, cashedOutAt, currency, hasBet, multiplier, phase, playSound, refreshBalance, unlockAudio]);
+  }, [unlockAudio, phase, hasBet, cashedOutAt, tgUser, currency, playSound, refreshBalance]);
 
   const roundColor = (value: number) => {
     if (value >= 10) return "hsl(280 88% 62%)";
     if (value >= 2) return "hsl(203 90% 58%)";
     return "hsl(0 74% 51%)";
   };
+
 
   return (
     <div className="min-h-screen overflow-hidden bg-background text-foreground" style={{ fontFamily: "Roboto, Inter, sans-serif" }}>
@@ -354,7 +379,7 @@ const AviatorGame = () => {
                       key={countdown}
                       className="h-full bg-primary"
                       initial={{ width: "100%" }}
-                      animate={{ width: `${(countdown / 5) * 100}%` }}
+                      animate={{ width: `${Math.max(0, Math.min(100, (countdown / 7) * 100))}%` }}
                       transition={{ duration: 0.35 }}
                     />
                   </div>
@@ -487,7 +512,7 @@ const BetPanel = ({
       </div>
 
       <div className="grid grid-cols-7 gap-0.5">
-        {PRESETS.map((amount) => (
+        {PRESETS_BY_CURRENCY[currency].map((amount) => (
           <button
             key={`${title}-${amount}`}
             disabled={muted}
