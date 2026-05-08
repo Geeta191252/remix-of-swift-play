@@ -26,7 +26,7 @@ type BetRow = {
   cashout: number | null;
 };
 
-const PRESETS = [10, 25, 50, 100, 250, 500, 1000];
+
 const PLANE_FRAMES = [plane0, plane1, plane2, plane3];
 
 const PRESETS_BY_CURRENCY: Record<CurrencyType, number[]> = {
