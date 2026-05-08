@@ -192,53 +192,7 @@ const AviatorGame = () => {
   const trailPath = `M ${sX} ${sY} C ${cp1xCur} ${cp1yCur}, ${cp2xCur} ${cp2yCur}, ${planeX} ${planeY}`;
   const trailFillPath = `${trailPath} L ${planeX} 91 L ${sX} 91 Z`;
 
-  const displayedBets = useMemo(() => {
-    const mine: BetRow[] = hasBet
-      ? [{ user: `${userName} (you)`, amount: betAmount, multiplier: cashedOutAt, cashout: cashedOutAt ? betAmount * cashedOutAt : null }]
-      : [];
-    return [...mine, ...serverBets];
-  }, [betAmount, cashedOutAt, hasBet, userName, serverBets]);
-
-  const placeBet = useCallback(async () => {
-    unlockAudio();
-    if (phase !== "betting") return toast.error("Wait for next round");
-    if (betAmount <= 0) return toast.error("Enter valid amount");
-    if (betAmount > balance) return toast.error("Insufficient balance");
-    if (hasBet || pendingBet) return;
-    if (!tgUser?.id) return toast.error("Open inside Telegram to bet");
-    setPendingBet(true);
-    try {
-      await placeAviatorBet({
-        userId: tgUser.id,
-        amount: betAmount,
-        currency,
-        firstName: userName,
-      });
-      setHasBet(true);
-      setCashedOutAt(null);
-      refreshBalance();
-      toast.success(`Bet placed: ${formatMoney(betAmount, currency)}`);
-    } catch (e) {
-      toast.error((e as Error).message || "Failed to place bet");
-    } finally {
-      setPendingBet(false);
-    }
-  }, [unlockAudio, phase, betAmount, balance, hasBet, pendingBet, tgUser, currency, userName, refreshBalance]);
-
-  const cashOut = useCallback(async () => {
-    unlockAudio();
-    if (phase !== "flying" || !hasBet || cashedOutAt !== null) return;
-    if (!tgUser?.id) return;
-    try {
-      const result = await cashOutAviator(tgUser.id, currency);
-      setCashedOutAt(result.multiplier);
-      playSound(cashoutAudioRef.current);
-      toast.success(`Cashed out @ ${result.multiplier.toFixed(2)}x — ${formatMoney(result.winAmount, currency)}`);
-      refreshBalance();
-    } catch (e) {
-      toast.error((e as Error).message || "Cashout failed");
-    }
-  }, [unlockAudio, phase, hasBet, cashedOutAt, tgUser, currency, playSound, refreshBalance]);
+  const displayedBets = serverBets;
 
   const roundColor = (value: number) => {
     if (value >= 10) return "hsl(280 88% 62%)";
