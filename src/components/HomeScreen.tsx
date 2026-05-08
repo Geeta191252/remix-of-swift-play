@@ -13,6 +13,7 @@ import greedyKingThumb from "@/assets/greedy-king-thumb.png";
 import gameDice from "@/assets/game-dice.jpg";
 import gameCarnivalSpin from "@/assets/game-carnival-spin.jpg";
 import gameMines from "@/assets/game-mines.jpg";
+import gameAviator from "@/assets/game-aviator.jpg";
 import homeBg from "@/assets/home-bg.png";
 
 interface GameTileProps {
@@ -79,6 +80,7 @@ const HomeScreen = () => {
   const goToDiceMaster = () => navigate("/dice-master");
   const goToCarnivalSpin = () => navigate("/carnival-spin");
   const goToMines = () => navigate("/mines");
+  const goToAviator = () => navigate("/aviator");
   const goToAdmin = () => navigate("/admin");
 
   const telegramUser = getTelegramUser();
@@ -288,7 +290,52 @@ const HomeScreen = () => {
                 background: "linear-gradient(90deg, transparent, hsl(280 60% 55%), hsl(45 80% 55%), hsl(0 70% 55%), transparent)",
               }} />
 
-              {/* Slots Category */}
+              {/* Crash Category */}
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <motion.h2
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    className="font-game text-lg flex items-center gap-2"
+                  >
+                    <span className="text-xl">🚀</span>
+                    <span style={{
+                      background: "linear-gradient(135deg, hsl(310 80% 65%), hsl(280 70% 60%), hsl(45 90% 60%))",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      filter: "drop-shadow(0 0 8px hsla(310, 80%, 60%, 0.5))",
+                    }}>Crash</span>
+                  </motion.h2>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1 text-xs font-semibold rounded-full px-3 py-1"
+                    style={{
+                      background: "hsla(310, 70%, 55%, 0.15)",
+                      color: "hsl(310 80% 75%)",
+                      border: "1px solid hsla(310, 70%, 55%, 0.25)",
+                    }}
+                  >
+                    View all <ChevronRight className="h-3.5 w-3.5" />
+                  </motion.button>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  <GameTile
+                    image={gameAviator}
+                    name="Aviator"
+                    description="Cash out before crash!"
+                    badge="🚀 NEW"
+                    badgeGradient="linear-gradient(135deg, hsl(310 75% 55%), hsl(280 65% 50%))"
+                    borderGradient="linear-gradient(135deg, hsl(310 80% 60%), hsl(280 70% 55%), hsl(45 85% 55%))"
+                    glowColor="hsla(310, 80%, 55%, 0.4)"
+                    delay={0.1}
+                    onClick={goToAviator}
+                  />
+                </div>
+              </section>
+
+              {/* Colorful Divider */}
+              <div className="h-[2px] rounded-full" style={{
+                background: "linear-gradient(90deg, transparent, hsl(280 60% 55%), hsl(45 80% 55%), hsl(0 70% 55%), transparent)",
+              }} />
               <section>
                 <div className="flex items-center justify-between mb-3">
                   <motion.h2
