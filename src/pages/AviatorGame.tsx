@@ -101,6 +101,14 @@ const AviatorGame = () => {
     crashAudioRef.current = new Audio("/sounds/aviator/plane-crash.mp3");
     cashoutAudioRef.current = new Audio("/sounds/aviator/cashout.mp3");
 
+    [bgAudioRef, startAudioRef, crashAudioRef, cashoutAudioRef].forEach((ref) => {
+      if (ref.current) {
+        ref.current.preload = "auto";
+        ref.current.volume = 0.7;
+        ref.current.load();
+      }
+    });
+
     return () => {
       [bgAudioRef, startAudioRef, crashAudioRef, cashoutAudioRef].forEach((ref) => {
         if (ref.current) {
@@ -132,7 +140,7 @@ const AviatorGame = () => {
     }
 
     if (phase === "flying") {
-      if (audioUnlockedRef.current) playSound(startAudioRef.current);
+      playSound(startAudioRef.current);
       startTimeRef.current = performance.now();
       const animate = (now: number) => {
         const elapsed = (now - startTimeRef.current) / 1000;
