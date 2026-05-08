@@ -183,7 +183,7 @@ const AviatorGame = () => {
   const t = progress;
   const planeX = Math.pow(1 - t, 3) * sX + 3 * Math.pow(1 - t, 2) * t * c1X + 3 * (1 - t) * t * t * c2X + t * t * t * eX;
   const planeY = Math.pow(1 - t, 3) * sY + 3 * Math.pow(1 - t, 2) * t * c1Y + 3 * (1 - t) * t * t * c2Y + t * t * t * eY;
-  const planeFrame = PLANE_FRAMES[Math.floor(multiplier * 8) % PLANE_FRAMES.length];
+  const planeFrameIndex = Math.floor(multiplier * 8) % PLANE_FRAMES.length;
 
   const cp1xCur = sX + (c1X - sX) * t;
   const cp1yCur = sY + (c1Y - sY) * t;
@@ -320,12 +320,21 @@ const AviatorGame = () => {
                 </svg>
 
                 <motion.div
-                  className="absolute pointer-events-none"
+                  className="absolute z-30 pointer-events-none"
                   style={{ left: `${planeX}%`, top: `${planeY}%`, transform: "translate(-50%, -50%)" }}
                   animate={phase === "crashed" ? { x: 190, y: -130, opacity: 0, scale: 0.85 } : { x: 0, y: 0, opacity: 1, scale: 1 }}
                   transition={{ duration: phase === "crashed" ? 1.05 : 0.05, ease: "easeOut" }}
                 >
-                  <img src={planeFrame} alt="" className={`h-16 sm:h-20 lg:h-28 w-28 sm:w-36 lg:w-44 object-contain ${phase === "crashed" ? "drop-shadow-[0_0_18px_hsl(0_85%_55%)]" : "drop-shadow-[0_0_14px_hsl(45_100%_55%)]"}`} />
+                  <div className="relative h-16 w-28 sm:h-20 sm:w-36 lg:h-28 lg:w-44">
+                    {PLANE_FRAMES.map((frame, index) => (
+                      <img
+                        key={frame}
+                        src={frame}
+                        alt=""
+                        className={`absolute inset-0 h-full w-full object-contain ${index === planeFrameIndex ? "opacity-100" : "opacity-0"} ${phase === "crashed" ? "drop-shadow-[0_0_18px_hsl(0_85%_55%)]" : "drop-shadow-[0_0_14px_hsl(45_100%_55%)]"}`}
+                      />
+                    ))}
+                  </div>
                 </motion.div>
               </div>
             )}
