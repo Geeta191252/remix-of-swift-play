@@ -1081,8 +1081,16 @@ app.post("/api/telegram-webhook", async (req, res) => {
       const allUsers = await User.find({ telegramId: { $gt: 0 } }).select("telegramId").lean();
       let sent = 0;
       let failed = 0;
+      let cancelled = false;
 
-      await bot.sendMessage(chatId, `📡 Broadcasting ${game.title} to ${allUsers.length} users...`);
+      if (global.__broadcastRunning) {
+        await bot.sendMessage(chatId, "⚠️ A broadcast is already running. Use /cancelbroadcast first.");
+        return res.sendStatus(200);
+      }
+      global.__broadcastRunning = true;
+      global.__broadcastCancel = false;
+
+      await bot.sendMessage(chatId, `📡 Broadcasting ${game.title} to ${allUsers.length} users...\n\nSend /cancelbroadcast to stop.`);
 
       const replyMarkup = {
         inline_keyboard: [
@@ -1091,6 +1099,7 @@ app.post("/api/telegram-webhook", async (req, res) => {
       };
 
       for (const user of allUsers) {
+        if (global.__broadcastCancel) { cancelled = true; break; }
         try {
           await bot.sendMessage(user.telegramId, text, {
             parse_mode: "HTML",
@@ -1111,7 +1120,10 @@ app.post("/api/telegram-webhook", async (req, res) => {
         if (sent % 25 === 0) await new Promise(r => setTimeout(r, 1000));
       }
 
-      await bot.sendMessage(chatId, `✅ Game broadcast complete!\n\n🎮 Game: ${game.title}\n📨 Sent: ${sent}\n❌ Failed: ${failed}\n👥 Total: ${allUsers.length}`);
+      global.__broadcastRunning = false;
+      global.__broadcastCancel = false;
+
+      await bot.sendMessage(chatId, `${cancelled ? "🛑 Game broadcast cancelled." : "✅ Game broadcast complete!"}\n\n🎮 Game: ${game.title}\n📨 Sent: ${sent}\n❌ Failed: ${failed}\n👥 Total: ${allUsers.length}`);
 
       return res.sendStatus(200);
     }
