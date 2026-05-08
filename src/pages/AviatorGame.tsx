@@ -1,21 +1,53 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Gift, Menu, ClipboardList, Trophy, MessageCircle, Wallet, ChevronRight, Star } from "lucide-react";
+import { ChevronDown, ClipboardList, Menu, MessageCircle, Plus, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBalanceContext } from "@/contexts/BalanceContext";
-import { reportGameResult, getTelegramUser, type CurrencyType } from "@/lib/telegram";
+import { getTelegramUser, reportGameResult, type CurrencyType } from "@/lib/telegram";
 import { toast } from "sonner";
+import logoImg from "@/assets/aviator/logo.png";
 import planeImg from "@/assets/aviator/plane.png";
+import plane0 from "@/assets/aviator/plane-0.svg";
+import plane1 from "@/assets/aviator/plane-1.svg";
+import plane2 from "@/assets/aviator/plane-2.svg";
+import plane3 from "@/assets/aviator/plane-3.svg";
+import staticPlane from "@/assets/aviator/static-plane.png";
+import rotateBg from "@/assets/aviator/bg-rotate-old.svg";
+import xAxis from "@/assets/aviator/x-axis.png";
+import yAxis from "@/assets/aviator/y-axis.png";
 
 type Phase = "betting" | "flying" | "crashed";
 
-const PRESETS = [10, 25, 50, 100, 250, 500, 1000];
+type BetRow = {
+  user: string;
+  amount: number;
+  multiplier: number | null;
+  cashout: number | null;
+};
+
+const PRESETS = [100, 200, 500, 1000];
+const PLANE_FRAMES = [plane0, plane1, plane2, plane3];
+
+const seededRows: BetRow[] = [
+  { user: "A***7", amount: 420, multiplier: 2.14, cashout: 898.8 },
+  { user: "R***2", amount: 100, multiplier: null, cashout: null },
+  { user: "K***9", amount: 750, multiplier: 1.64, cashout: 1230 },
+  { user: "M***4", amount: 250, multiplier: null, cashout: null },
+  { user: "S***1", amount: 1000, multiplier: 3.08, cashout: 3080 },
+  { user: "D***8", amount: 150, multiplier: null, cashout: null },
+];
 
 const generateCrashPoint = () => {
   const r = Math.random();
-  if (r < 0.05) return 1.0;
-  const x = 1 / (1 - Math.random());
-  return Math.min(Math.max(1.01, x), 50);
+  if (r < 0.15) return Number((1 + Math.random() * 0.35).toFixed(2));
+  if (r < 0.65) return Number((1.35 + Math.random() * 1.75).toFixed(2));
+  if (r < 0.9) return Number((3.1 + Math.random() * 4.8).toFixed(2));
+  return Number((8 + Math.random() * 12).toFixed(2));
+};
+
+const formatMoney = (value: number, currency: CurrencyType) => {
+  if (currency === "star") return `⭐${Number(value.toFixed(2))}`;
+  return `$${value.toFixed(2)}`;
 };
 
 const AviatorGame = () => {
@@ -26,416 +58,456 @@ const AviatorGame = () => {
   const [currency, setCurrency] = useState<CurrencyType>("dollar");
   const [betAmount, setBetAmount] = useState(100);
   const [phase, setPhase] = useState<Phase>("betting");
-  const [multiplier, setMultiplier] = useState(1.0);
-  const [crashAt, setCrashAt] = useState(2.0);
+  const [multiplier, setMultiplier] = useState(1);
+  const [crashAt, setCrashAt] = useState(2);
   const [hasBet, setHasBet] = useState(false);
   const [cashedOutAt, setCashedOutAt] = useState<number | null>(null);
-  const [history, setHistory] = useState<number[]>([2.4, 1.1, 8.9, 1.0, 3.2, 1.5, 2.7, 1.3, 4.6, 1.0]);
   const [countdown, setCountdown] = useState(5);
+  const [history, setHistory] = useState<number[]>([1.28, 2.45, 8.71, 1.04, 3.23, 1.61, 5.92, 2.02, 1.19, 12.4]);
+
+  const startTimeRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const bgAudioRef = useRef<HTMLAudioElement | null>(null);
+  const startAudioRef = useRef<HTMLAudioElement | null>(null);
+  const crashAudioRef = useRef<HTMLAudioElement | null>(null);
+  const cashoutAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUnlockedRef = useRef(false);
 
   const totalDollar = dollarBalance + dollarWinning;
   const totalStar = starBalance + starWinning;
   const balance = currency === "dollar" ? totalDollar : totalStar;
+  const userName = tgUser?.first_name || tgUser?.username || "Player";
 
-  const startTimeRef = useRef<number>(0);
-  const rafRef = useRef<number | null>(null);
+  const playSound = useCallback((audio: HTMLAudioElement | null) => {
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(() => undefined);
+  }, []);
+
+  const unlockAudio = useCallback(() => {
+    audioUnlockedRef.current = true;
+    const bg = bgAudioRef.current;
+    if (bg) {
+      bg.volume = 0.28;
+      bg.loop = true;
+      bg.play().catch(() => undefined);
+    }
+  }, []);
+
+  useEffect(() => {
+    bgAudioRef.current = new Audio("/sounds/aviator/background.mp3");
+    startAudioRef.current = new Audio("/sounds/aviator/game-start.mp3");
+    crashAudioRef.current = new Audio("/sounds/aviator/plane-crash.mp3");
+    cashoutAudioRef.current = new Audio("/sounds/aviator/cashout.mp3");
+
+    return () => {
+      [bgAudioRef, startAudioRef, crashAudioRef, cashoutAudioRef].forEach((ref) => {
+        if (ref.current) {
+          ref.current.pause();
+          ref.current.src = "";
+        }
+      });
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (phase === "betting") {
-      setMultiplier(1.0);
+      setMultiplier(1);
       setCashedOutAt(null);
       setCountdown(5);
-      const tick = setInterval(() => {
-        setCountdown((c) => {
-          if (c <= 1) {
-            clearInterval(tick);
+      const tick = window.setInterval(() => {
+        setCountdown((current) => {
+          if (current <= 1) {
+            window.clearInterval(tick);
             setCrashAt(generateCrashPoint());
             setPhase("flying");
             return 0;
           }
-          return c - 1;
+          return current - 1;
         });
       }, 1000);
-      return () => clearInterval(tick);
+      return () => window.clearInterval(tick);
     }
+
     if (phase === "flying") {
+      if (audioUnlockedRef.current) playSound(startAudioRef.current);
       startTimeRef.current = performance.now();
       const animate = (now: number) => {
         const elapsed = (now - startTimeRef.current) / 1000;
-        const m = Math.pow(1.07, elapsed * 4);
-        if (m >= crashAt) {
+        const nextMultiplier = Math.pow(1.075, elapsed * 4.2);
+        if (nextMultiplier >= crashAt) {
           setMultiplier(crashAt);
           setPhase("crashed");
           return;
         }
-        setMultiplier(m);
+        setMultiplier(nextMultiplier);
         rafRef.current = requestAnimationFrame(animate);
       };
       rafRef.current = requestAnimationFrame(animate);
-      return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+      return () => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      };
     }
+
     if (phase === "crashed") {
+      playSound(crashAudioRef.current);
       if (hasBet && cashedOutAt === null) {
-        toast.error(`💥 Crashed at ${crashAt.toFixed(2)}x — Bet lost`);
+        toast.error(`FLEW AWAY @ ${crashAt.toFixed(2)}x — Bet lost`);
         reportGameResult({ betAmount, winAmount: 0, currency, game: "aviator" })
-          .then(() => refreshBalance()).catch(() => {});
+          .then(() => refreshBalance())
+          .catch(() => undefined);
       }
-      setHistory((h) => [Number(crashAt.toFixed(2)), ...h].slice(0, 10));
-      const t = setTimeout(() => { setHasBet(false); setPhase("betting"); }, 2500);
-      return () => clearTimeout(t);
+      setHistory((items) => [Number(crashAt.toFixed(2)), ...items].slice(0, 18));
+      const timeout = window.setTimeout(() => {
+        setHasBet(false);
+        setPhase("betting");
+      }, 3000);
+      return () => window.clearTimeout(timeout);
     }
-  }, [phase]); // eslint-disable-line
+  }, [betAmount, cashedOutAt, crashAt, currency, hasBet, phase, playSound, refreshBalance]);
+
+  const progress = useMemo(() => {
+    if (phase === "betting") return 0;
+    return Math.min(Math.max((multiplier - 1) / 4.7, 0.02), 0.97);
+  }, [multiplier, phase]);
+
+  const sX = 4;
+  const sY = 91;
+  const c1X = 31;
+  const c1Y = 91;
+  const c2X = 50;
+  const c2Y = 62;
+  const eX = phase === "crashed" ? 112 : 88;
+  const eY = phase === "crashed" ? -10 : 17;
+  const t = progress;
+  const planeX = Math.pow(1 - t, 3) * sX + 3 * Math.pow(1 - t, 2) * t * c1X + 3 * (1 - t) * t * t * c2X + t * t * t * eX;
+  const planeY = Math.pow(1 - t, 3) * sY + 3 * Math.pow(1 - t, 2) * t * c1Y + 3 * (1 - t) * t * t * c2Y + t * t * t * eY;
+  const planeFrame = PLANE_FRAMES[Math.floor(multiplier * 8) % PLANE_FRAMES.length];
+
+  const trailPath = `M ${sX} ${sY} C ${c1X} ${c1Y}, ${c2X} ${c2Y}, ${planeX} ${planeY}`;
+  const trailFillPath = `${trailPath} L ${planeX} 95 L ${sX} 95 Z`;
+
+  const displayedBets = useMemo(() => {
+    const active: BetRow[] = hasBet
+      ? [{ user: userName, amount: betAmount, multiplier: cashedOutAt, cashout: cashedOutAt ? betAmount * cashedOutAt : null }]
+      : [];
+    return [...active, ...seededRows];
+  }, [betAmount, cashedOutAt, hasBet, userName]);
 
   const placeBet = () => {
+    unlockAudio();
     if (phase !== "betting") return toast.error("Wait for next round");
     if (betAmount <= 0) return toast.error("Enter valid amount");
     if (betAmount > balance) return toast.error("Insufficient balance");
     setHasBet(true);
-    toast.success(`Bet placed: ${currency === "dollar" ? "$" : "⭐"}${betAmount}`);
+    toast.success(`Bet placed: ${formatMoney(betAmount, currency)}`);
   };
 
   const cashOut = useCallback(async () => {
+    unlockAudio();
     if (phase !== "flying" || !hasBet || cashedOutAt !== null) return;
-    const m = multiplier;
-    const win = Number((betAmount * m).toFixed(2));
-    setCashedOutAt(m);
-    toast.success(`💰 Cashed @ ${m.toFixed(2)}x — Won ${currency === "dollar" ? "$" : "⭐"}${win}`);
+    const cashedAt = multiplier;
+    const win = Number((betAmount * cashedAt).toFixed(2));
+    setCashedOutAt(cashedAt);
+    playSound(cashoutAudioRef.current);
+    toast.success(`You have cashed out @ ${cashedAt.toFixed(2)}x — ${formatMoney(win, currency)}`);
     try {
       await reportGameResult({ betAmount, winAmount: win, currency, game: "aviator" });
       refreshBalance();
-    } catch (e) { console.error(e); }
-  }, [phase, hasBet, cashedOutAt, multiplier, betAmount, currency, refreshBalance]);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [betAmount, cashedOutAt, currency, hasBet, multiplier, phase, playSound, refreshBalance, unlockAudio]);
 
-  // Plane curve: bottom-left to top-right via quadratic bezier (matches mockup)
-  const progress = phase === "flying" ? Math.min((multiplier - 1) / 5, 0.95) : 0;
-  const sX = 5, sY = 95, cX = 50, cY = 95, eX = 88, eY = 14;
-  const t = progress;
-  const planeX = (1 - t) * (1 - t) * sX + 2 * (1 - t) * t * cX + t * t * eX;
-  const planeY = (1 - t) * (1 - t) * sY + 2 * (1 - t) * t * cY + t * t * eY;
-  const dx = 2 * (1 - t) * (cX - sX) + 2 * t * (eX - cX);
-  const dy = 2 * (1 - t) * (cY - sY) + 2 * t * (eY - cY);
-  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-  const userName = tgUser?.first_name || tgUser?.username || "Aviator99";
-  const avatarUrl = (tgUser as any)?.photo_url;
-
-  const historyColor = (h: number) => {
-    if (h <= 1.05) return { border: "hsl(0 75% 55%)", text: "hsl(0 90% 70%)", bg: "hsla(0, 70%, 25%, 0.35)" };
-    if (h >= 5) return { border: "hsl(280 70% 60%)", text: "hsl(280 90% 75%)", bg: "hsla(280, 60%, 25%, 0.35)" };
-    if (h >= 2) return { border: "hsl(195 80% 55%)", text: "hsl(195 90% 70%)", bg: "hsla(195, 60%, 20%, 0.35)" };
-    return { border: "hsl(35 90% 55%)", text: "hsl(40 95% 65%)", bg: "hsla(35, 70%, 20%, 0.35)" };
+  const roundColor = (value: number) => {
+    if (value >= 10) return "hsl(280 88% 62%)";
+    if (value >= 2) return "hsl(203 90% 58%)";
+    return "hsl(0 74% 51%)";
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden text-white" style={{
-      background: "radial-gradient(ellipse at 30% 20%, hsl(265 50% 14%) 0%, hsl(260 55% 8%) 60%, hsl(255 60% 4%) 100%)",
-    }}>
-      {/* Stars */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        {[...Array(60)].map((_, i) => (
-          <div key={i} className="absolute rounded-full bg-white" style={{
-            width: `${1 + (i % 3)}px`, height: `${1 + (i % 3)}px`,
-            top: `${(i * 37) % 100}%`, left: `${(i * 53) % 100}%`,
-            opacity: 0.2 + ((i % 5) / 12),
-          }} />
-        ))}
-      </div>
+    <div className="min-h-screen overflow-hidden bg-background text-foreground" style={{ fontFamily: "Roboto, Inter, sans-serif" }}>
+      <audio preload="auto" src="/sounds/aviator/background.mp3" />
+      <audio preload="auto" src="/sounds/aviator/game-start.mp3" />
+      <audio preload="auto" src="/sounds/aviator/plane-crash.mp3" />
+      <audio preload="auto" src="/sounds/aviator/cashout.mp3" />
 
-      <div className="relative z-10 flex flex-col min-h-screen pb-2">
-        {/* Header */}
-        <div className="px-3 pt-3 pb-2 flex items-center gap-2">
-          <button onClick={() => navigate("/")} className="h-12 w-12 rounded-full overflow-hidden shrink-0" style={{ border: "2px solid hsl(280 70% 55%)" }}>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center font-bold text-lg" style={{ background: "linear-gradient(135deg, hsl(280 60% 35%), hsl(310 55% 30%))" }}>
-                {userName.charAt(0).toUpperCase()}
+      <header className="h-12 px-2 flex items-center justify-between border-b border-border bg-card">
+        <button onClick={() => navigate("/")} className="h-9 flex items-center" aria-label="Home">
+          <img src={logoImg} alt="Aviator" className="h-8 w-auto object-contain" />
+        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCurrency(currency === "dollar" ? "star" : "dollar")}
+            className="h-8 min-w-28 px-2 rounded-full flex items-center justify-between gap-2 bg-muted border border-border text-sm font-bold"
+          >
+            <span>{currency === "dollar" ? totalDollar.toFixed(2) : Number(totalStar.toFixed(2))}</span>
+            <span className="rounded-full px-2 py-0.5 bg-primary text-primary-foreground text-[11px]">{currency === "dollar" ? "$" : "⭐"}</span>
+          </button>
+          <button onClick={() => navigate("/wallet")} className="h-8 w-8 rounded-full bg-primary text-primary-foreground grid place-items-center" aria-label="Wallet">
+            <Plus className="h-4 w-4" />
+          </button>
+          <button className="h-8 w-8 rounded-full bg-muted grid place-items-center" aria-label="Menu">
+            <Menu className="h-4 w-4" />
+          </button>
+        </div>
+      </header>
+
+      <main className="h-[calc(100vh-48px)] min-h-[720px] grid grid-cols-1 lg:grid-cols-[330px_1fr] gap-2 p-2 bg-background">
+        <aside className="hidden lg:flex flex-col rounded-lg bg-card border border-border overflow-hidden">
+          <div className="h-11 grid grid-cols-2 text-sm font-bold border-b border-border">
+            <button className="relative text-foreground">All Bets<span className="absolute left-5 right-5 bottom-0 h-0.5 bg-primary" /></button>
+            <button className="text-muted-foreground">My Bets</button>
+          </div>
+          <div className="p-2 flex items-center justify-between text-xs font-bold">
+            <span>TOTAL BETS : <span className="text-primary">{displayedBets.length}</span></span>
+            <button className="px-2 py-1 rounded bg-muted text-muted-foreground">Previous hand</button>
+          </div>
+          <div className="grid grid-cols-[1.3fr_.7fr_.7fr_1fr] px-3 py-2 text-[11px] text-muted-foreground bg-muted font-bold">
+            <span>User</span><span>Bet</span><span>Mult.</span><span>Cash out</span>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            {displayedBets.map((row, index) => (
+              <div key={`${row.user}-${index}`} className="grid grid-cols-[1.3fr_.7fr_.7fr_1fr] items-center px-3 py-2 text-xs border-b border-border/70">
+                <span className="font-semibold">{row.user}</span>
+                <span>{row.amount}</span>
+                <span className={row.multiplier ? "text-primary font-bold" : "text-muted-foreground"}>{row.multiplier ? `${row.multiplier.toFixed(2)}x` : "-"}</span>
+                <span className={row.cashout ? "text-primary font-bold" : "text-muted-foreground"}>{row.cashout ? row.cashout.toFixed(2) : "-"}</span>
               </div>
-            )}
-          </button>
-          <div className="flex flex-col">
-            <span className="font-bold text-[15px] leading-tight">{userName}</span>
-            <div className="flex items-center gap-1 mt-0.5 px-1.5 py-0.5 rounded-md self-start" style={{ background: "hsla(280, 50%, 20%, 0.7)", border: "1px solid hsla(280, 60%, 50%, 0.4)" }}>
-              <Star className="h-2.5 w-2.5 fill-current" style={{ color: "hsl(45 95% 60%)" }} />
-              <span className="text-[10px] font-bold tracking-wider" style={{ color: "hsl(280 80% 75%)" }}>VIP</span>
-            </div>
-          </div>
-
-          <div className="flex-1 flex justify-center">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{
-              background: "hsla(265, 40%, 12%, 0.7)",
-              border: "1.5px solid hsl(280 70% 55%)",
-              boxShadow: "0 0 16px hsla(280, 70%, 50%, 0.3)",
-            }}>
-              <span className="font-extrabold text-[15px]">
-                {currency === "dollar" ? `$${totalDollar.toFixed(2)}` : `⭐${totalStar}`}
-              </span>
-              <Wallet className="h-4 w-4" style={{ color: "hsl(40 90% 55%)" }} />
-              <button onClick={() => navigate("/wallet")} className="h-5 w-5 rounded-full flex items-center justify-center" style={{ background: "hsla(280, 60%, 40%, 0.6)" }}>
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-          </div>
-
-          <button className="relative h-10 w-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "hsla(265, 40%, 15%, 0.7)", border: "1.5px solid hsl(280 70% 55%)" }}>
-            <Gift className="h-4 w-4" style={{ color: "hsl(280 80% 70%)" }} />
-            <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-red-500" />
-          </button>
-          <button className="h-10 w-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "hsla(265, 40%, 15%, 0.7)", border: "1.5px solid hsl(280 70% 55%)" }}>
-            <Menu className="h-4 w-4" style={{ color: "hsl(280 80% 70%)" }} />
-          </button>
-        </div>
-
-        {/* Previous rounds */}
-        <div className="px-3 pt-1 pb-2">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold tracking-[0.15em]" style={{ color: "hsl(280 30% 65%)" }}>PREVIOUS ROUNDS</span>
-            <button className="flex items-center gap-0.5 text-[11px] font-bold tracking-wider" style={{ color: "hsl(280 30% 65%)" }}>
-              VIEW ALL <ChevronRight className="h-3 w-3" />
-            </button>
-          </div>
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-            {history.map((h, i) => {
-              const c = historyColor(h);
-              const isCrash = h <= 1.05;
-              return (
-                <div key={i} className="rounded-full px-2.5 py-1 text-[11px] font-extrabold shrink-0" style={{
-                  background: c.bg, border: `1px solid ${c.border}`, color: c.text,
-                }}>
-                  {isCrash ? "CRASH" : `${h.toFixed(h >= 10 ? 1 : 1)}x`}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Game arena */}
-        <div className="flex-1 relative mx-3 rounded-3xl overflow-hidden" style={{
-          background: "radial-gradient(ellipse at 30% 70%, hsla(285, 70%, 30%, 0.55) 0%, hsla(265, 60%, 12%, 0.95) 60%)",
-          minHeight: 360,
-        }}>
-          {/* Inner stars */}
-          <div className="absolute inset-0 pointer-events-none">
-            {[...Array(40)].map((_, i) => (
-              <div key={i} className="absolute rounded-full bg-white" style={{
-                width: `${1 + (i % 3)}px`, height: `${1 + (i % 3)}px`,
-                top: `${(i * 41) % 100}%`, left: `${(i * 67) % 100}%`,
-                opacity: 0.25 + ((i % 5) / 12),
-              }} />
             ))}
           </div>
+        </aside>
 
-          {/* Trail */}
-          {phase === "flying" && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 100 100">
-              <defs>
-                <linearGradient id="trailGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="hsl(310, 95%, 55%)" stopOpacity="0.3" />
-                  <stop offset="50%" stopColor="hsl(330, 100%, 60%)" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="hsl(40, 100%, 65%)" stopOpacity="1" />
-                </linearGradient>
-                <linearGradient id="trailFill" x1="0%" y1="100%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="hsl(310, 90%, 55%)" stopOpacity="0.05" />
-                  <stop offset="100%" stopColor="hsl(330, 95%, 60%)" stopOpacity="0.25" />
-                </linearGradient>
-              </defs>
-              <path d={`M ${sX} ${sY} Q ${cX} ${cY}, ${planeX} ${planeY} L ${planeX} 100 L ${sX} 100 Z`} fill="url(#trailFill)" />
-              <path d={`M ${sX} ${sY} Q ${cX} ${cY}, ${planeX} ${planeY}`} stroke="url(#trailGrad)" strokeWidth="1.4" strokeLinecap="round" fill="none" style={{ filter: "drop-shadow(0 0 1.5px hsl(330 100% 60%))" }} />
-            </svg>
-          )}
+        <section className="min-w-0 flex flex-col gap-2">
+          <div className="h-9 flex items-center justify-between rounded-lg bg-card border border-border px-2">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+              {history.map((item, index) => (
+                <span key={`${item}-${index}`} className="shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold bg-muted" style={{ color: roundColor(item) }}>
+                  {item.toFixed(2)}x
+                </span>
+              ))}
+            </div>
+            <button className="ml-2 shrink-0 h-7 px-2 rounded bg-muted text-xs font-bold flex items-center gap-1 text-muted-foreground">
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </div>
 
-          {/* Multiplier center */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            {phase === "betting" ? (
-              <div className="text-center">
-                <div className="text-xs font-bold tracking-[0.2em] mb-2" style={{ color: "hsl(280 50% 75%)" }}>NEXT ROUND IN</div>
-                <div className="text-7xl font-black" style={{
-                  background: "linear-gradient(180deg, hsl(45 100% 65%), hsl(25 95% 55%))",
-                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                  filter: "drop-shadow(0 0 25px hsla(40, 100%, 55%, 0.7))",
-                  fontFamily: "'Russo One', Impact, sans-serif",
-                }}>{countdown}</div>
+          <div className="relative min-h-[310px] flex-1 rounded-lg border border-border overflow-hidden bg-card">
+            <div className="absolute inset-0 bg-background" />
+            <div className="absolute inset-0 opacity-85" style={{ backgroundImage: `url(${xAxis})`, backgroundSize: "100% 100%" }} />
+            <div className="absolute inset-0 opacity-65" style={{ backgroundImage: `url(${yAxis})`, backgroundSize: "100% 100%" }} />
+            <div className="absolute left-5 top-0 bottom-5 w-px bg-border" />
+            <div className="absolute left-5 right-0 bottom-5 h-px bg-border" />
+
+            {phase !== "betting" && (
+              <svg className="absolute inset-x-5 bottom-5 top-4 w-[calc(100%-2.5rem)] h-[calc(100%-2.25rem)]" preserveAspectRatio="none" viewBox="0 0 100 100">
+                <defs>
+                  <linearGradient id="aviatorStroke" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0%" stopColor="hsl(350 100% 45%)" />
+                    <stop offset="100%" stopColor="hsl(350 100% 58%)" />
+                  </linearGradient>
+                  <linearGradient id="aviatorFill" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0%" stopColor="hsl(350 100% 45% / 0.08)" />
+                    <stop offset="100%" stopColor="hsl(350 100% 45% / 0.34)" />
+                  </linearGradient>
+                </defs>
+                <path d={trailFillPath} fill="url(#aviatorFill)" />
+                <path d={trailPath} stroke="url(#aviatorStroke)" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              </svg>
+            )}
+
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {phase === "betting" ? (
+                <div className="text-center px-4">
+                  <img src={planeImg} alt="" className="mx-auto h-20 w-20 object-contain mb-3 opacity-95" />
+                  <div className="text-2xl sm:text-4xl font-black tracking-wide text-foreground">WAITING FOR NEXT ROUND</div>
+                  <div className="mx-auto mt-4 h-1.5 w-64 max-w-[72vw] rounded-full overflow-hidden bg-muted">
+                    <motion.div
+                      key={countdown}
+                      className="h-full bg-primary"
+                      initial={{ width: "100%" }}
+                      animate={{ width: `${(countdown / 5) * 100}%` }}
+                      transition={{ duration: 0.35 }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  {phase === "crashed" && <div className="text-2xl sm:text-4xl font-black text-destructive mb-1">FLEW AWAY!</div>}
+                  <div className="font-game text-6xl sm:text-8xl leading-none font-black text-foreground text-glow">
+                    {multiplier.toFixed(2)}<span className="text-4xl sm:text-6xl">X</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <img src={rotateBg} alt="" className="absolute -right-24 -bottom-32 h-[420px] w-[420px] max-w-none opacity-40 animate-spin pointer-events-none" style={{ animationDuration: "18s" }} />
+
+            {phase === "betting" && (
+              <div className="absolute left-4 bottom-6 pointer-events-none">
+                <img src={staticPlane} alt="" className="h-20 w-28 object-contain" />
               </div>
-            ) : (
-              <motion.div animate={phase === "crashed" ? { scale: [1, 1.15, 0.95] } : {}} className="text-center">
-                <div className="text-[80px] leading-none font-black tracking-tight" style={{
-                  background: phase === "crashed"
-                    ? "linear-gradient(180deg, hsl(0 95% 65%), hsl(15 90% 50%))"
-                    : "linear-gradient(180deg, hsl(45 100% 70%), hsl(30 95% 55%), hsl(15 90% 50%))",
-                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-                  filter: `drop-shadow(0 0 30px ${phase === "crashed" ? "hsla(0, 95%, 50%, 0.7)" : "hsla(35, 100%, 55%, 0.75)"})`,
-                  fontFamily: "'Russo One', Impact, sans-serif",
-                }}>
-                  {multiplier.toFixed(2)}<span className="text-[60px]">x</span>
-                </div>
-                <div className="mt-1 flex items-center justify-center gap-2">
-                  <div className="h-px w-8" style={{ background: "hsla(0,0%,100%,0.4)" }} />
-                  <span className="text-[13px] font-extrabold italic tracking-[0.18em]" style={{ color: phase === "crashed" ? "hsl(0 90% 75%)" : "white" }}>
-                    {phase === "crashed" ? "CRASHED!" : "FLYING HIGH!"}
-                  </span>
-                  <div className="h-px w-8" style={{ background: "hsla(0,0%,100%,0.4)" }} />
-                </div>
+            )}
+
+            {phase !== "betting" && (
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{ left: `calc(20px + ${planeX}% * 0.94)`, top: `calc(16px + ${planeY}% * 0.90)`, transform: "translate(-50%, -50%)" }}
+                animate={phase === "crashed" ? { x: 190, y: -130, opacity: 0, scale: 0.85 } : { x: 0, y: 0, opacity: 1, scale: 1 }}
+                transition={{ duration: phase === "crashed" ? 1.05 : 0.05, ease: "easeOut" }}
+              >
+                <img src={planeFrame} alt="" className="h-20 sm:h-28 w-32 sm:w-44 object-contain drop-shadow-[0_0_12px_hsl(var(--destructive))]" />
               </motion.div>
             )}
           </div>
 
-          {/* Plane */}
-          {phase === "flying" && (
-            <div className="absolute pointer-events-none" style={{
-              left: `${planeX}%`, top: `${planeY}%`,
-              transform: `translate(-50%, -50%) rotate(${angle}deg)`,
-              transition: "left 0.05s linear, top 0.05s linear",
-              filter: "drop-shadow(0 0 10px hsla(0, 90%, 55%, 0.7)) drop-shadow(0 4px 12px hsla(0, 0%, 0%, 0.6))",
-            }}>
-              <PlaneSVG />
-            </div>
-          )}
-          {phase === "crashed" && (
-            <motion.div className="absolute pointer-events-none" style={{ left: `${planeX}%`, top: `${planeY}%`, transform: "translate(-50%, -50%)" }}
-              animate={{ y: 280, rotate: 540, opacity: 0 }} transition={{ duration: 1.6, ease: "easeIn" }}>
-              <PlaneSVG dim />
-            </motion.div>
-          )}
-
-          {/* Planet glow bottom-left */}
-          <div className="absolute -left-8 -bottom-8 w-40 h-40 rounded-full pointer-events-none" style={{
-            background: "radial-gradient(circle at 70% 30%, hsla(280, 80%, 50%, 0.5), hsla(310, 70%, 40%, 0.2) 60%, transparent 75%)",
-            filter: "blur(2px)",
-          }} />
-        </div>
-
-        {/* Bet panel */}
-        <div className="mx-3 mt-3 rounded-2xl p-3" style={{
-          background: "linear-gradient(135deg, hsla(265, 50%, 14%, 0.95), hsla(280, 45%, 11%, 0.95))",
-          border: "1.5px solid hsl(280 60% 45%)",
-          boxShadow: "0 0 24px hsla(280, 60%, 40%, 0.25)",
-        }}>
-          <div className="text-[10px] font-extrabold tracking-[0.18em] mb-1.5" style={{ color: "hsl(280 35% 70%)" }}>BET AMOUNT</div>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 rounded-xl px-4 h-12 flex items-center" style={{
-              background: "hsla(265, 50%, 8%, 0.9)", border: "1px solid hsla(280, 50%, 35%, 0.5)",
-            }}>
-              <input
-                type="number"
-                value={betAmount}
-                onChange={(e) => setBetAmount(Math.max(0, Number(e.target.value)))}
-                className="w-full bg-transparent text-2xl font-black focus:outline-none"
-              />
-            </div>
-            <div className="flex h-12 rounded-xl overflow-hidden" style={{ background: "hsla(265, 50%, 8%, 0.9)", border: "1px solid hsla(280, 50%, 35%, 0.5)" }}>
-              <button onClick={() => setCurrency("dollar")} className="px-3 h-full flex items-center justify-center text-xs font-extrabold" style={{
-                background: currency === "dollar" ? "linear-gradient(135deg, hsl(280 60% 40%), hsl(295 55% 35%))" : "transparent",
-                color: "white",
-              }}>USD</button>
-              <button onClick={() => setCurrency("star")} className="px-3 h-full flex items-center justify-center" style={{
-                background: currency === "star" ? "linear-gradient(135deg, hsl(40 95% 50%), hsl(30 90% 45%))" : "transparent",
-              }}>
-                <Star className="h-5 w-5 fill-current" style={{ color: currency === "star" ? "hsl(0 0% 10%)" : "hsl(45 95% 60%)" }} />
-              </button>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <BetPanel
+              title="BET"
+              betAmount={betAmount}
+              setBetAmount={setBetAmount}
+              phase={phase}
+              hasBet={hasBet}
+              cashedOutAt={cashedOutAt}
+              multiplier={multiplier}
+              placeBet={placeBet}
+              cashOut={cashOut}
+              currency={currency}
+            />
+            <BetPanel
+              title="AUTO"
+              betAmount={betAmount}
+              setBetAmount={setBetAmount}
+              phase={phase}
+              hasBet={hasBet}
+              cashedOutAt={cashedOutAt}
+              multiplier={multiplier}
+              placeBet={placeBet}
+              cashOut={cashOut}
+              currency={currency}
+              muted
+            />
           </div>
 
-          {/* Presets */}
-          <div className="grid grid-cols-7 gap-1.5 mt-2.5">
-            {PRESETS.map((amt) => {
-              const active = betAmount === amt;
+          <nav className="h-14 grid grid-cols-4 rounded-lg bg-card border border-border lg:hidden">
+            {[
+              { icon: PlaneNavIcon, label: "Aviator", active: true },
+              { icon: ClipboardList, label: "My Bets" },
+              { icon: Trophy, label: "Top" },
+              { icon: MessageCircle, label: "Chat" },
+            ].map((item) => {
+              const Icon = item.icon;
               return (
-                <button key={amt} onClick={() => setBetAmount(amt)} className="h-8 rounded-lg text-[11px] font-bold transition" style={{
-                  background: active ? "hsla(280, 60%, 25%, 0.8)" : "hsla(265, 30%, 12%, 0.6)",
-                  border: `1px solid ${active ? "hsl(280 80% 60%)" : "hsla(280, 40%, 30%, 0.4)"}`,
-                  color: active ? "white" : "hsl(280 30% 70%)",
-                  boxShadow: active ? "0 0 10px hsla(280, 70%, 50%, 0.5)" : "none",
-                }}>
-                  {amt}
+                <button key={item.label} className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold text-muted-foreground data-[active=true]:text-primary" data-active={item.active}>
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
                 </button>
               );
             })}
-          </div>
+          </nav>
+        </section>
+      </main>
+    </div>
+  );
+};
 
-          {/* Action button */}
-          <div className="mt-3">
-            {phase === "flying" && hasBet && cashedOutAt === null ? (
-              <motion.button whileTap={{ scale: 0.97 }} onClick={cashOut}
-                animate={{ boxShadow: ["0 0 20px hsla(0, 80%, 50%, 0.5)", "0 0 35px hsla(0, 80%, 50%, 0.85)", "0 0 20px hsla(0, 80%, 50%, 0.5)"] }}
-                transition={{ duration: 0.8, repeat: Infinity }}
-                className="w-full h-14 rounded-2xl font-black text-xl flex items-center justify-center gap-2"
-                style={{ background: "linear-gradient(180deg, hsl(0 85% 58%), hsl(10 80% 45%))", color: "white", fontFamily: "'Russo One', Impact, sans-serif", letterSpacing: "0.05em" }}>
-                CASH OUT @ {multiplier.toFixed(2)}x
-              </motion.button>
-            ) : phase === "flying" && cashedOutAt !== null ? (
-              <div className="w-full h-14 rounded-2xl font-black text-xl flex items-center justify-center" style={{
-                background: "linear-gradient(180deg, hsl(140 70% 45%), hsl(155 60% 35%))", color: "white", fontFamily: "'Russo One', Impact, sans-serif",
-              }}>✓ CASHED @ {cashedOutAt.toFixed(2)}x</div>
-            ) : (
-              <motion.button whileTap={{ scale: 0.97 }} onClick={placeBet} disabled={hasBet || phase !== "betting"}
-                animate={!hasBet && phase === "betting" ? { boxShadow: ["0 0 20px hsla(140, 80%, 45%, 0.5)", "0 0 38px hsla(140, 80%, 45%, 0.85)", "0 0 20px hsla(140, 80%, 45%, 0.5)"] } : {}}
-                transition={{ duration: 1.2, repeat: Infinity }}
-                className="w-full h-14 rounded-2xl font-black text-2xl flex items-center justify-center gap-3 disabled:opacity-70"
-                style={{
-                  background: hasBet
-                    ? "linear-gradient(180deg, hsl(40 90% 55%), hsl(30 85% 45%))"
-                    : "linear-gradient(180deg, hsl(135 75% 55%), hsl(145 70% 40%))",
-                  color: "white", fontFamily: "'Russo One', Impact, sans-serif", letterSpacing: "0.06em",
-                  textShadow: "0 2px 4px hsla(0,0%,0%,0.3)",
-                }}>
-                {hasBet ? "⏳ WAITING..." : (
-                  <>
-                    PLACE BET
-                    <svg width="28" height="28" viewBox="0 0 64 64"><polygon points="6,32 56,28 32,34" fill="white" opacity="0.95" /><polygon points="6,32 56,28 28,42" fill="white" opacity="0.7" /></svg>
-                  </>
-                )}
-              </motion.button>
-            )}
-          </div>
+const BetPanel = ({
+  title,
+  betAmount,
+  setBetAmount,
+  phase,
+  hasBet,
+  cashedOutAt,
+  multiplier,
+  placeBet,
+  cashOut,
+  currency,
+  muted = false,
+}: {
+  title: string;
+  betAmount: number;
+  setBetAmount: (value: number) => void;
+  phase: Phase;
+  hasBet: boolean;
+  cashedOutAt: number | null;
+  multiplier: number;
+  placeBet: () => void;
+  cashOut: () => void;
+  currency: CurrencyType;
+  muted?: boolean;
+}) => {
+  const canCashOut = phase === "flying" && hasBet && cashedOutAt === null;
+  const isWaiting = hasBet && phase === "betting";
+  const value = muted ? Math.max(10, Math.round(betAmount / 2)) : betAmount;
+
+  const setValue = (next: number) => {
+    if (!muted) setBetAmount(Math.max(1, next));
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-2">
+      <div className="h-8 flex items-center justify-center mb-2">
+        <div className="h-7 w-44 rounded-full bg-background p-0.5 grid grid-cols-2 text-xs font-bold">
+          <button className="rounded-full bg-muted text-foreground">{title}</button>
+          <button className="rounded-full text-muted-foreground">Auto</button>
         </div>
-
-        {/* Bottom nav */}
-        <div className="grid grid-cols-4 gap-1 px-2 pt-3 pb-1">
-          {[
-            { icon: PlaneNavIcon, label: "Aviator", active: true },
-            { icon: ClipboardList, label: "My Bets" },
-            { icon: Trophy, label: "Top" },
-            { icon: MessageCircle, label: "Chat", badge: 128 },
-          ].map((item: any) => {
-            const Icon = item.icon;
-            return (
-              <button key={item.label} className="flex flex-col items-center gap-0.5 py-1 relative">
-                <div className="relative">
-                  <Icon className="h-6 w-6" style={{ color: item.active ? "hsl(280 85% 70%)" : "hsl(280 25% 55%)" }} />
-                  {item.badge && (
-                    <div className="absolute -top-1 -right-2 min-w-[18px] h-[16px] rounded-full px-1 flex items-center justify-center text-[9px] font-bold" style={{ background: "hsl(140 70% 45%)" }}>
-                      {item.badge}
-                    </div>
-                  )}
-                </div>
-                <span className="text-[11px] font-bold" style={{ color: item.active ? "hsl(280 85% 70%)" : "hsl(280 25% 55%)" }}>{item.label}</span>
+      </div>
+      <div className="grid grid-cols-[1fr_1.05fr] gap-2 items-stretch">
+        <div className="min-w-0">
+          <div className="h-10 rounded-full bg-background border border-border flex items-center overflow-hidden">
+            <input
+              value={value.toFixed(2)}
+              disabled={muted}
+              onChange={(event) => setValue(Number(event.target.value.replace(/[^0-9.]/g, "")) || 0)}
+              className="w-full min-w-0 bg-transparent px-3 text-center font-bold text-lg outline-none disabled:opacity-70"
+              inputMode="decimal"
+            />
+            <div className="grid grid-cols-2 h-full border-l border-border">
+              <button onClick={() => setValue(value - 10)} className="w-9 grid place-items-center bg-muted text-xl font-bold" disabled={muted}>-</button>
+              <button onClick={() => setValue(value + 10)} className="w-9 grid place-items-center bg-muted text-xl font-bold" disabled={muted}>+</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 mt-2">
+            {PRESETS.map((amount) => (
+              <button
+                key={`${title}-${amount}`}
+                disabled={muted}
+                onClick={() => setValue(amount)}
+                className="h-7 rounded-full bg-muted text-muted-foreground text-xs font-bold disabled:opacity-70"
+              >
+                {amount}<span className="text-[10px]">{currency === "dollar" ? "$" : "⭐"}</span>
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
+
+        {canCashOut ? (
+          <button onClick={cashOut} disabled={muted} className="rounded-xl bg-primary text-primary-foreground font-game text-xl leading-tight flex flex-col items-center justify-center disabled:opacity-70">
+            <span>CASH OUT</span>
+            <span className="text-base font-sans font-black">{(value * multiplier).toFixed(2)}</span>
+          </button>
+        ) : cashedOutAt ? (
+          <div className="rounded-xl bg-primary text-primary-foreground font-game text-lg flex flex-col items-center justify-center opacity-90">
+            <span>CASHED</span>
+            <span className="text-sm">{cashedOutAt.toFixed(2)}x</span>
+          </div>
+        ) : (
+          <button
+            onClick={placeBet}
+            disabled={muted || isWaiting || phase !== "betting"}
+            className="rounded-xl bg-[hsl(104_82%_39%)] text-foreground font-game text-2xl leading-tight flex flex-col items-center justify-center shadow-[inset_0_-3px_0_hsl(104_80%_28%)] disabled:opacity-70"
+          >
+            <span>{isWaiting ? "CANCEL" : "BET"}</span>
+            <span className="text-base font-sans font-black">{value.toFixed(2)}</span>
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
-const PlaneSVG = ({ dim = false }: { dim?: boolean }) => (
-  <img
-    src={planeImg}
-    alt=""
-    width={80}
-    height={80}
-    style={{
-      display: "block",
-      width: 80,
-      height: 80,
-      objectFit: "contain",
-      opacity: dim ? 0.55 : 1,
-      filter: dim ? "saturate(0.5) brightness(0.6)" : "drop-shadow(0 0 12px hsla(0, 95%, 55%, 0.7))",
-    }}
-  />
-);
-
-const PlaneNavIcon = (props: any) => (
+const PlaneNavIcon = (props: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M2 12 L20 8 L12 12.5 Z" />
     <path d="M2 12 L20 8 L11 16 Z" opacity="0.7" />
