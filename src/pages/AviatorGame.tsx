@@ -470,7 +470,7 @@ const BetPanel = ({
     if (!tgUserId) return toast.error("Open inside Telegram to bet");
     setPendingBet(true);
     try {
-      await placeAviatorBet({ userId: tgUserId, amount: betAmount, currency, firstName: userName });
+      await placeAviatorBet({ userId: tgUserId, amount: betAmount, currency, firstName: userName, slot: auto ? 2 : 1 });
       setHasBet(true);
       setCashedOutAt(null);
       refreshBalance();
@@ -487,7 +487,7 @@ const BetPanel = ({
     if (phase !== "flying" || !hasBet || cashedOutAt !== null) return;
     if (!tgUserId) return;
     try {
-      const result = await cashOutAviator(tgUserId, currency);
+      const result = await cashOutAviator(tgUserId, currency, auto ? 2 : 1);
       setCashedOutAt(result.multiplier);
       playSound(cashoutAudioRef.current);
       toast.success(`[${title}] Cashed out @ ${result.multiplier.toFixed(2)}x — ${formatMoney(result.winAmount, currency)}`);

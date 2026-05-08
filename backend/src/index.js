@@ -1792,10 +1792,11 @@ function makeAviatorPool() {
     phaseStartTime: Date.now(),
     crashAt: 1.0,                // set when flying begins; can be brought down dynamically
     flightStartTime: 0,
-    bets: {},                    // { telegramId: { amount, firstName, cashedOutAt, winAmount } }
+    bets: {},                    // { "telegramId:slot": { userId, amount, firstName, cashedOutAt, winAmount } }
     history: [],                 // last 18 crash multipliers
     totalPool: 0,                // sum of all bets this round
     totalPaidOut: 0,             // running sum of cashouts
+    userCooldown: {},            // { telegramId: cooldownUntilRound } — blocks wins for 4-6 rounds after a win
   };
 }
 const aviatorState = {
@@ -1877,8 +1878,9 @@ async function aviatorPhaseTick(currency) {
 
       // Persist losing bets as bet transactions; winners already got 'win' tx on cashout
       try {
-        for (const tgId of Object.keys(s.bets)) {
-          const b = s.bets[tgId];
+        for (const key of Object.keys(s.bets)) {
+          const b = s.bets[key];
+          const tgId = b.userId || Number(String(key).split(":")[0]);
           if (b.amount > 0) {
             await Transaction.create({
               telegramId: Number(tgId),
@@ -1951,7 +1953,7 @@ app.get("/api/aviator/state", (req, res) => {
 // POST /api/aviator/bet
 app.post("/api/aviator/bet", async (req, res) => {
   try {
-    const { userId, amount, currency, firstName } = req.body;
+    const { userId, amount, currency, firstName, slot } = req.body;
     const curr = currency === "star" ? "star" : "dollar";
     const s = aviatorState[curr];
     if (s.phase !== "betting") return res.status(400).json({ error: "Betting closed for this round" });
@@ -1965,7 +1967,9 @@ app.post("/api/aviator/bet", async (req, res) => {
     const winning = user[winField] || 0;
     if (wallet + winning < numAmt) return res.status(400).json({ error: "Insufficient balance" });
 
-    if (s.bets[user.telegramId]) return res.status(400).json({ error: "You already have a bet this round" });
+    const slotNum = slot === 2 ? 2 : 1;
+    const key = `${user.telegramId}:${slotNum}`;
+    if (s.bets[key]) return res.status(400).json({ error: `Slot ${slotNum} already has a bet this round` });
 
     const fromWallet = Math.min(wallet, numAmt);
     const fromWin = numAmt - fromWallet;
@@ -1973,7 +1977,9 @@ app.post("/api/aviator/bet", async (req, res) => {
     user[winField] = winning - fromWin;
     await user.save();
 
-    s.bets[user.telegramId] = {
+    s.bets[key] = {
+      userId: user.telegramId,
+      slot: slotNum,
       amount: numAmt,
       firstName: firstName || user.firstName || "Player",
       cashedOutAt: null,
@@ -1981,7 +1987,7 @@ app.post("/api/aviator/bet", async (req, res) => {
     };
     s.totalPool += numAmt;
 
-    res.json({ success: true, roundNumber: s.roundNumber });
+    res.json({ success: true, roundNumber: s.roundNumber, slot: slotNum });
   } catch (err) {
     console.error("Aviator bet error:", err);
     res.status(500).json({ error: "Failed to place bet" });
@@ -1991,15 +1997,27 @@ app.post("/api/aviator/bet", async (req, res) => {
 // POST /api/aviator/cashout
 app.post("/api/aviator/cashout", async (req, res) => {
   try {
-    const { userId, currency } = req.body;
+    const { userId, currency, slot } = req.body;
     const curr = currency === "star" ? "star" : "dollar";
     const s = aviatorState[curr];
     if (s.phase !== "flying") return res.status(400).json({ error: "Cannot cash out now" });
 
     const numericId = Number(userId);
-    const bet = s.bets[numericId];
+    const slotNum = slot === 2 ? 2 : 1;
+    const key = `${numericId}:${slotNum}`;
+    const bet = s.bets[key];
     if (!bet) return res.status(400).json({ error: "No active bet" });
     if (bet.cashedOutAt) return res.status(400).json({ error: "Already cashed out" });
+
+    // Per-user cooldown: 1-2 wins per 5-7 rounds.
+    // If user is in cooldown, force-crash plane at current multiplier and reject cashout.
+    const cooldownUntil = s.userCooldown[numericId] || 0;
+    if (s.roundNumber <= cooldownUntil) {
+      const elapsedC = Date.now() - s.flightStartTime;
+      const mC = Math.max(1.0, aviatorMultiplierAt(elapsedC));
+      s.crashAt = Math.min(s.crashAt, Number(mC.toFixed(2)));
+      return res.status(400).json({ error: "Plane crashed!" });
+    }
 
     const elapsed = Date.now() - s.flightStartTime;
     const mult = Math.min(aviatorMultiplierAt(elapsed), s.crashAt);
@@ -2008,6 +2026,10 @@ app.post("/api/aviator/cashout", async (req, res) => {
     bet.cashedOutAt = Number(mult.toFixed(2));
     bet.winAmount = win;
     s.totalPaidOut += win;
+
+    // Set cooldown: next 4-6 rounds this user can't win
+    const cd = 4 + Math.floor(Math.random() * 3);
+    s.userCooldown[numericId] = s.roundNumber + cd;
 
     // Credit winning balance immediately + create win tx
     const user = await getOrCreateUser(numericId);
@@ -2027,23 +2049,18 @@ app.post("/api/aviator/cashout", async (req, res) => {
     // House-edge enforcement: keep at least profit% of pool.
     const profitPct = await getAviatorProfitPercent();
     const maxPayout = s.totalPool * (1 - profitPct / 100);
-    // If projected payout (current paid + remaining bets cashing now) exceeds maxPayout, force crash.
     let remainingExposure = 0;
     for (const k of Object.keys(s.bets)) {
       const b = s.bets[k];
       if (!b.cashedOutAt) remainingExposure += b.amount * mult;
     }
     if (s.totalPaidOut >= maxPayout) {
-      // Already over budget — crash on the next tick at current multiplier
       s.crashAt = Number(mult.toFixed(2));
     } else if (s.totalPaidOut + remainingExposure > maxPayout) {
-      // Tighten cap so we crash when paid-out reaches the max
-      // Compute multiplier at which expected payout (assuming all remaining cash out) = maxPayout
       const remainingBetSum = Object.values(s.bets).filter((b) => !b.cashedOutAt).reduce((a, b) => a + b.amount, 0);
       if (remainingBetSum > 0) {
         const targetMult = (maxPayout - s.totalPaidOut) / remainingBetSum;
         const safeTarget = Math.max(1.01, Math.min(s.crashAt, Number(targetMult.toFixed(2))));
-        // Only lower the cap, never raise
         if (safeTarget < s.crashAt) s.crashAt = safeTarget;
       }
     }
@@ -2064,11 +2081,15 @@ app.get("/api/aviator/my-bet", (req, res) => {
   const curr = req.query.currency === "star" ? "star" : "dollar";
   const s = aviatorState[curr];
   const numericId = Number(req.query.userId);
-  const b = s.bets[numericId];
+  const slots = [1, 2].map((slot) => {
+    const b = s.bets[`${numericId}:${slot}`];
+    return b ? { slot, amount: b.amount, cashedOutAt: b.cashedOutAt, winAmount: b.winAmount } : null;
+  }).filter(Boolean);
   res.json({
     roundNumber: s.roundNumber,
     phase: s.phase,
-    bet: b ? { amount: b.amount, cashedOutAt: b.cashedOutAt, winAmount: b.winAmount } : null,
+    bets: slots,
+    bet: slots[0] || null, // backwards compat
   });
 });
 
