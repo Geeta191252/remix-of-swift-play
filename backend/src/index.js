@@ -2081,7 +2081,6 @@ app.post("/api/aviator/cashout", async (req, res) => {
       }
     }
 
-    res.json({
       success: true,
       multiplier: bet.cashedOutAt,
       winAmount: win,
