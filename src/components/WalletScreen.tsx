@@ -628,7 +628,7 @@ const WalletScreen = () => {
             </motion.div>
           )}
         </AnimatePresence>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-[9px] text-muted-foreground">
           Powered by NOWPayments • Balance updates automatically after payment confirmation
         </p>
       </motion.div>
