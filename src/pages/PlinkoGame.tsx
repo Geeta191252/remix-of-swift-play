@@ -668,7 +668,7 @@ const PlinkoGame = () => {
 
           {/* Bet */}
           <div className="text-center">
-            <div className="flex justify-center gap-1 mb-1">
+            
             <div
               className="flex items-stretch rounded-full overflow-hidden mx-auto mb-1"
               style={{
