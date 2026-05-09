@@ -519,51 +519,51 @@ const WalletScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12 }}
         id="crypto-deposit"
-        className="bg-card border border-border rounded-2xl p-4 space-y-3"
+        className="bg-card border border-border rounded-xl p-3 space-y-2"
       >
-        <div className="flex items-center gap-2">
-          <Coins className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-sm text-foreground">Crypto Deposit</h3>
+        <div className="flex items-center gap-1.5">
+          <Coins className="h-3.5 w-3.5 text-primary" />
+          <h3 className="font-semibold text-xs text-foreground">Crypto Deposit</h3>
         </div>
-        <p className="text-xs text-muted-foreground">Pay with any crypto → Get $ in wallet</p>
+        <p className="text-[10px] text-muted-foreground">Pay with any crypto → Get $ in wallet</p>
 
         {/* Crypto selector */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {["btc", "ltc", "ton", "sol", "trx", "doge"].map((coin) => (
             <button
               key={coin}
               onClick={() => setCryptoCurrency(coin)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex flex-col items-center ${
+              className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors flex flex-col items-center leading-tight ${
                 cryptoCurrency === coin
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
               <span>{coin.toUpperCase()}</span>
-              <span className="text-[9px] font-normal opacity-75">min ${cryptoMins[coin] || 1}</span>
+              <span className="text-[8px] font-normal opacity-75">min ${cryptoMins[coin] || 1}</span>
             </button>
           ))}
         </div>
 
         {/* Amount input */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <div className="flex-1 relative">
             <Input
               type="number"
               placeholder={`USD amount (min $${cryptoMins[cryptoCurrency] || 1})`}
               value={cryptoAmount}
               onChange={(e) => setCryptoAmount(e.target.value)}
-              className="pr-8 rounded-xl bg-background"
+              className="pr-7 rounded-lg bg-background h-9 text-xs"
               min={cryptoMins[cryptoCurrency] || 1}
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>
           </div>
           <Button
-            className="rounded-xl"
+            className="rounded-lg h-9 px-3"
             disabled={cryptoProcessing || !cryptoAmount}
             onClick={handleCryptoDeposit}
           >
-            {cryptoProcessing ? "..." : <><ExternalLink className="h-4 w-4" /></>}
+            {cryptoProcessing ? "..." : <ExternalLink className="h-3.5 w-3.5" />}
           </Button>
         </div>
         {/* Payment details shown in-app */}
