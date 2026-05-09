@@ -365,7 +365,7 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    if (isOwner) { fetchAll(); fetchAviatorProfit(); fetchManualQueue("dollar"); fetchOffers(); }
+    if (isOwner) { fetchAll(); fetchAviatorProfit(); fetchManualQueue("dollar"); fetchOffers(); fetchTournaments(); }
   }, []);
 
   const handleAdjust = async () => {
@@ -528,8 +528,9 @@ const AdminPanel = () => {
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "stats", label: "Stats", icon: <Star className="h-4 w-4" /> },
     { key: "users", label: "Users", icon: <Users className="h-4 w-4" /> },
-    { key: "withdrawals", label: "Withdrawals", icon: <CreditCard className="h-4 w-4" /> },
+    { key: "withdrawals", label: "Wd", icon: <CreditCard className="h-4 w-4" /> },
     { key: "offers", label: "Offers", icon: <Tag className="h-4 w-4" /> },
+    { key: "tournaments", label: "Tournament", icon: <Trophy className="h-4 w-4" /> },
   ];
 
   return (
