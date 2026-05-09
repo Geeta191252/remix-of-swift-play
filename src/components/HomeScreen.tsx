@@ -312,7 +312,7 @@ const HomeScreen = () => {
                     <div className="rounded-2xl p-4 text-center text-xs" style={{
                       background: "hsla(260,40%,25%,0.4)", border: "1px dashed hsla(45,80%,55%,0.25)", color: "hsl(260 30% 70%)"
                     }}>
-                      Koi tournament active nahi. Jaldi aane wale hain! 🏆
+                      No tournaments active right now. Coming soon! 🏆
                     </div>
                   ) : (
                     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
