@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Users, Star, DollarSign, RefreshCw, User, CreditCard, Plus, Minus, X, Copy, Tag, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Users, Star, DollarSign, RefreshCw, User, CreditCard, Plus, Minus, X, Copy, Tag, Send, Trash2, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { getTelegramUser } from "@/lib/telegram";
@@ -48,7 +48,18 @@ interface WithdrawalRequest {
   withdrawalNetwork?: string;
 }
 
-type Tab = "stats" | "users" | "withdrawals" | "offers";
+type Tab = "stats" | "users" | "withdrawals" | "offers" | "tournaments";
+
+interface AdminTournament {
+  _id: string;
+  title: string;
+  imageUrl?: string;
+  prizeCurrency: "dollar" | "star";
+  tier: number;
+  prizePerWinner: number;
+  active: boolean;
+  createdAt: string;
+}
 
 interface AdminOffer {
   _id: string;
@@ -93,6 +104,103 @@ const AdminPanel = () => {
   const [creatingOffer, setCreatingOffer] = useState(false);
   const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
   const [deletingOfferId, setDeletingOfferId] = useState<string | null>(null);
+
+  // Tournaments state
+  const [tournaments, setTournaments] = useState<AdminTournament[]>([]);
+  const [tournamentForm, setTournamentForm] = useState({
+    title: "",
+    imageUrl: "",
+    prizeCurrency: "dollar" as "star" | "dollar",
+    tier: "50" as "50" | "100",
+    prizePerWinner: "",
+  });
+  const [creatingTournament, setCreatingTournament] = useState(false);
+  const [deletingTournamentId, setDeletingTournamentId] = useState<string | null>(null);
+  const [distributingId, setDistributingId] = useState<string | null>(null);
+
+  const fetchTournaments = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/tournaments/list`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerId: String(OWNER_ID) }),
+      });
+      const data = await res.json();
+      if (res.ok) setTournaments(data.tournaments || []);
+    } catch { /* ignore */ }
+  };
+
+  const handleCreateTournament = async () => {
+    const prize = parseFloat(tournamentForm.prizePerWinner);
+    if (!tournamentForm.title.trim() || isNaN(prize) || prize <= 0) {
+      toast({ title: "Invalid", description: "Title aur prize amount bharo." });
+      return;
+    }
+    setCreatingTournament(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/tournaments/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ownerId: String(OWNER_ID),
+          title: tournamentForm.title.trim(),
+          imageUrl: tournamentForm.imageUrl.trim(),
+          prizeCurrency: tournamentForm.prizeCurrency,
+          tier: Number(tournamentForm.tier),
+          prizePerWinner: prize,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast({ title: "Tournament created 🏆" });
+      setTournamentForm({ title: "", imageUrl: "", prizeCurrency: "dollar", tier: "50", prizePerWinner: "" });
+      fetchTournaments();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "Failed" });
+    } finally {
+      setCreatingTournament(false);
+    }
+  };
+
+  const handleDeleteTournament = async (id: string) => {
+    if (!confirm("Delete this tournament?")) return;
+    setDeletingTournamentId(id);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/tournaments/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerId: String(OWNER_ID), tournamentId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setTournaments((prev) => prev.filter((t) => t._id !== id));
+      toast({ title: "Deleted" });
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "Failed" });
+    } finally {
+      setDeletingTournamentId(null);
+    }
+  };
+
+  const handleDistributeTournament = async (id: string) => {
+    if (!confirm("Distribute prizes to top winners now? (tournament closes)")) return;
+    setDistributingId(id);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/tournaments/distribute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerId: String(OWNER_ID), tournamentId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast({ title: "Distributed 🎉", description: `Credited ${data.credited} winners` });
+      fetchTournaments();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "Failed" });
+    } finally {
+      setDistributingId(null);
+    }
+  };
 
   // Aviator profit %
   const [aviatorProfit, setAviatorProfit] = useState<number>(50);
@@ -257,7 +365,7 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    if (isOwner) { fetchAll(); fetchAviatorProfit(); fetchManualQueue("dollar"); fetchOffers(); }
+    if (isOwner) { fetchAll(); fetchAviatorProfit(); fetchManualQueue("dollar"); fetchOffers(); fetchTournaments(); }
   }, []);
 
   const handleAdjust = async () => {
@@ -420,8 +528,9 @@ const AdminPanel = () => {
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "stats", label: "Stats", icon: <Star className="h-4 w-4" /> },
     { key: "users", label: "Users", icon: <Users className="h-4 w-4" /> },
-    { key: "withdrawals", label: "Withdrawals", icon: <CreditCard className="h-4 w-4" /> },
+    { key: "withdrawals", label: "Wd", icon: <CreditCard className="h-4 w-4" /> },
     { key: "offers", label: "Offers", icon: <Tag className="h-4 w-4" /> },
+    { key: "tournaments", label: "Tournament", icon: <Trophy className="h-4 w-4" /> },
   ];
 
   return (
@@ -1048,6 +1157,152 @@ const AdminPanel = () => {
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                               Delete
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Tournaments Tab */}
+          {activeTab === "tournaments" && (
+            <div className="space-y-4">
+              <div className="rounded-2xl p-4" style={{
+                background: "linear-gradient(135deg, hsla(280, 70%, 45%, 0.2), hsla(45, 80%, 50%, 0.18))",
+                border: "1px solid hsla(45, 80%, 50%, 0.35)",
+              }}>
+                <h2 className="font-bold text-sm mb-3" style={{ color: "hsl(45 95% 70%)" }}>🏆 Create Tournament</h2>
+
+                <input
+                  type="text"
+                  placeholder="Title (e.g. Mega Game Battle)"
+                  value={tournamentForm.title}
+                  onChange={(e) => setTournamentForm({ ...tournamentForm, title: e.target.value })}
+                  className="w-full rounded-lg px-3 py-2 mb-2 text-sm font-bold outline-none"
+                  style={{ background: "hsla(260, 40%, 15%, 0.8)", color: "hsl(0 0% 95%)", border: "1px solid hsla(45, 60%, 50%, 0.3)" }}
+                />
+
+                <input
+                  type="text"
+                  placeholder="Image URL (https://...)"
+                  value={tournamentForm.imageUrl}
+                  onChange={(e) => setTournamentForm({ ...tournamentForm, imageUrl: e.target.value })}
+                  className="w-full rounded-lg px-3 py-2 mb-1 text-sm outline-none"
+                  style={{ background: "hsla(260, 40%, 15%, 0.8)", color: "hsl(0 0% 95%)", border: "1px solid hsla(280, 60%, 50%, 0.3)" }}
+                />
+                {tournamentForm.imageUrl && (
+                  <img src={tournamentForm.imageUrl} alt="preview" className="w-full h-24 object-cover rounded-lg mb-2" />
+                )}
+
+                <div className="flex gap-2 mb-2">
+                  {(["dollar", "star"] as const).map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setTournamentForm({ ...tournamentForm, prizeCurrency: c })}
+                      className="flex-1 py-2 rounded-lg text-xs font-bold"
+                      style={{
+                        background: tournamentForm.prizeCurrency === c ? "hsla(45, 80%, 50%, 0.25)" : "hsla(260, 40%, 30%, 0.4)",
+                        border: tournamentForm.prizeCurrency === c ? "1px solid hsla(45, 80%, 50%, 0.4)" : "1px solid transparent",
+                        color: tournamentForm.prizeCurrency === c ? "hsl(45 90% 70%)" : "hsl(0 0% 55%)",
+                      }}
+                    >
+                      {c === "star" ? "⭐ Star" : "$ Dollar"}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-2 mb-2">
+                  {(["50", "100"] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTournamentForm({ ...tournamentForm, tier: t })}
+                      className="flex-1 py-2 rounded-lg text-xs font-bold"
+                      style={{
+                        background: tournamentForm.tier === t ? "hsla(280, 70%, 50%, 0.3)" : "hsla(260, 40%, 30%, 0.4)",
+                        border: tournamentForm.tier === t ? "1px solid hsla(280, 70%, 50%, 0.5)" : "1px solid transparent",
+                        color: tournamentForm.tier === t ? "hsl(280 70% 80%)" : "hsl(0 0% 55%)",
+                      }}
+                    >
+                      Top {t}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="number"
+                  placeholder="Prize per winner"
+                  value={tournamentForm.prizePerWinner}
+                  onChange={(e) => setTournamentForm({ ...tournamentForm, prizePerWinner: e.target.value })}
+                  className="w-full rounded-lg px-3 py-2 mb-3 text-sm font-bold outline-none"
+                  style={{ background: "hsla(260, 40%, 15%, 0.8)", color: "hsl(0 0% 95%)", border: "1px solid hsla(120, 60%, 45%, 0.3)" }}
+                />
+
+                <button
+                  onClick={handleCreateTournament}
+                  disabled={creatingTournament}
+                  className="w-full py-2.5 rounded-lg text-sm font-bold disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, hsl(280 70% 45%), hsl(45 80% 50%))", color: "white" }}
+                >
+                  {creatingTournament ? "Creating…" : "🏆 Create Tournament"}
+                </button>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="font-bold text-sm" style={{ color: "hsl(45 90% 70%)" }}>📋 All Tournaments ({tournaments.length})</h2>
+                  <button onClick={fetchTournaments} className="p-1.5 rounded-md" style={{ background: "hsla(260, 40%, 25%, 0.6)" }}>
+                    <RefreshCw className="h-3.5 w-3.5" style={{ color: "hsl(45 80% 65%)" }} />
+                  </button>
+                </div>
+
+                {tournaments.length === 0 ? (
+                  <p className="text-center text-xs py-6" style={{ color: "hsl(0 0% 50%)" }}>No tournaments yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {tournaments.map((t) => {
+                      const sym = t.prizeCurrency === "dollar" ? "$" : "⭐";
+                      return (
+                        <div key={t._id} className="rounded-xl p-3" style={{
+                          background: "hsla(260, 40%, 25%, 0.6)",
+                          border: t.active ? "1px solid hsla(45, 80%, 50%, 0.3)" : "1px solid hsla(0, 0%, 40%, 0.2)",
+                          opacity: t.active ? 1 : 0.6,
+                        }}>
+                          <div className="flex gap-3">
+                            {t.imageUrl && (
+                              <img src={t.imageUrl} alt={t.title} className="w-16 h-16 rounded-lg object-cover" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm truncate" style={{ color: "hsl(45 95% 70%)" }}>{t.title}</p>
+                              <p className="text-[11px]" style={{ color: "hsl(0 0% 75%)" }}>
+                                Top {t.tier} • {sym}{t.prizePerWinner} each
+                              </p>
+                              <p className="text-[10px]" style={{ color: "hsl(0 0% 55%)" }}>
+                                {t.active ? "🟢 Active" : "⚫ Closed"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            {t.active && (
+                              <button
+                                onClick={() => handleDistributeTournament(t._id)}
+                                disabled={distributingId === t._id}
+                                className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
+                                style={{ background: "linear-gradient(135deg, hsl(140 65% 40%), hsl(160 60% 35%))", color: "white" }}
+                              >
+                                {distributingId === t._id ? "..." : "🎉 Distribute Prizes"}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteTournament(t._id)}
+                              disabled={deletingTournamentId === t._id}
+                              className="px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1 disabled:opacity-50"
+                              style={{ background: "linear-gradient(135deg, hsl(0 70% 45%), hsl(15 60% 40%))", color: "white" }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </div>
