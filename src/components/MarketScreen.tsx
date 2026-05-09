@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Clock, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { initiatePayment, getTelegram } from "@/lib/telegram";
+import { initiatePayment, getTelegram, requestInvoice } from "@/lib/telegram";
 import { useBalanceContext } from "@/contexts/BalanceContext";
 import { useEffect, useState } from "react";
 
