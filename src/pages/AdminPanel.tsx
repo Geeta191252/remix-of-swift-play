@@ -569,20 +569,20 @@ const AdminPanel = () => {
   ];
 
   return (
-    <div className="min-h-screen pb-8" style={{
+    <div className="min-h-screen pb-4" style={{
       background: "linear-gradient(180deg, hsl(260 60% 20%) 0%, hsl(280 50% 15%) 100%)",
     }}>
       {/* Header */}
-      <div className="sticky top-0 z-30 backdrop-blur-md px-4 py-3 flex items-center gap-3" style={{
+      <div className="sticky top-0 z-30 backdrop-blur-md px-3 py-2 flex items-center gap-2" style={{
         background: "hsla(260, 50%, 20%, 0.9)",
         borderBottom: "1px solid hsla(45, 80%, 50%, 0.3)",
       }}>
         <button onClick={() => navigate("/")} className="p-1">
-          <ArrowLeft className="h-5 w-5" style={{ color: "hsl(45 80% 65%)" }} />
+          <ArrowLeft className="h-4 w-4" style={{ color: "hsl(45 80% 65%)" }} />
         </button>
-        <h1 className="font-bold text-lg" style={{ color: "hsl(45 90% 70%)" }}>👑 Admin Panel</h1>
-        <button onClick={fetchAll} className="ml-auto p-2 rounded-lg" style={{ background: "hsla(45, 80%, 50%, 0.15)" }}>
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} style={{ color: "hsl(45 80% 65%)" }} />
+        <h1 className="font-bold text-sm" style={{ color: "hsl(45 90% 70%)" }}>👑 Admin Panel</h1>
+        <button onClick={fetchAll} className="ml-auto p-1.5 rounded-lg" style={{ background: "hsla(45, 80%, 50%, 0.15)" }}>
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} style={{ color: "hsl(45 80% 65%)" }} />
         </button>
       </div>
 
