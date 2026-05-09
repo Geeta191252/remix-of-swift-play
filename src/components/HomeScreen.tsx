@@ -480,6 +480,7 @@ const HomeScreen = () => {
                   </motion.h2>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
+                    onClick={() => setFilter("slots")}
                     className="flex items-center gap-1 text-xs font-semibold rounded-full px-3 py-1"
                     style={{
                       background: "hsla(0, 70%, 55%, 0.15)",
@@ -490,7 +491,7 @@ const HomeScreen = () => {
                     View all <ChevronRight className="h-3.5 w-3.5" />
                   </motion.button>
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="grid grid-cols-2 gap-3 pb-2">
                   <GameTile
                     image={gameDice}
                     name="Dice Master"
