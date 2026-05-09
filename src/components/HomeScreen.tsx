@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ShoppingCart, User, Shield, Sparkles, Flame, X } from "lucide-react";
+import { ChevronRight, ShoppingCart, User, Shield, Sparkles, Flame, X, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBalanceContext } from "@/contexts/BalanceContext";
 import { getTelegramUser } from "@/lib/telegram";
@@ -9,6 +9,11 @@ import EarnScreen from "./EarnScreen";
 import FriendsScreen from "./FriendsScreen";
 import WalletScreen from "./WalletScreen";
 import MarketScreen from "./MarketScreen";
+import TournamentLeaderboard, { Tournament } from "./TournamentLeaderboard";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://broken-bria-chetan1-ea890b93.koyeb.app/api";
+
+type FilterTab = "all" | "tournament" | "wheel" | "crash" | "slots";
 
 import greedyKingThumb from "@/assets/greedy-king-thumb.png";
 import gameDice from "@/assets/game-dice.jpg";
@@ -78,6 +83,17 @@ const HomeScreen = () => {
   const { dollarBalance, starBalance, dollarWinning, starWinning } = useBalanceContext();
   const totalDollar = dollarBalance + dollarWinning;
   const totalStar = starBalance + starWinning;
+  const [filter, setFilter] = useState<FilterTab>("all");
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [openTournament, setOpenTournament] = useState<Tournament | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/tournaments/active`)
+      .then((r) => r.ok ? r.json() : { tournaments: [] })
+      .then((d) => setTournaments(d.tournaments || []))
+      .catch(() => {});
+  }, []);
+
   const goToGreedyKing = () => navigate("/greedy-king");
   const goToDiceMaster = () => navigate("/dice-master");
   const goToCarnivalSpin = () => navigate("/carnival-spin");
