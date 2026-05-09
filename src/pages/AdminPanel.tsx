@@ -1313,6 +1313,10 @@ const AdminPanel = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Fund Adjustment Modal */}
       {adjustUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "hsla(0,0%,0%,0.7)" }}>
           <motion.div
