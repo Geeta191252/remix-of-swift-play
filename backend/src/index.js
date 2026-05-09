@@ -10,6 +10,7 @@ const User = require("./models/User");
 const Transaction = require("./models/Transaction");
 const GameBet = require("./models/GameBet");
 const Offer = require("./models/Offer");
+const Tournament = require("./models/Tournament");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -2438,6 +2439,166 @@ app.post("/api/admin/offers/broadcast", async (req, res) => {
       await new Promise((r) => setTimeout(r, 35));
     }
     res.json({ success: true, sent, failed, total: users.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================
+// TOURNAMENTS
+// ============================================
+const OWNER_ID_STR = "6965488457";
+
+// Public: list active tournaments
+app.get("/api/tournaments/active", async (req, res) => {
+  try {
+    const list = await Tournament.find({ active: true }).sort({ createdAt: -1 }).lean();
+    res.json({ tournaments: list });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Public: leaderboard for a tournament (top N by games played)
+app.get("/api/tournaments/:id/leaderboard", async (req, res) => {
+  try {
+    const t = await Tournament.findById(req.params.id).lean();
+    if (!t) return res.status(404).json({ error: "Tournament not found" });
+
+    const match = {
+      type: "bet",
+      status: "completed",
+      createdAt: { $gte: t.startedAt },
+    };
+    if (t.endsAt) match.createdAt.$lte = t.endsAt;
+    if (t.gameFilter) match.game = t.gameFilter;
+
+    const limit = t.tier || 50;
+    const top = await Transaction.aggregate([
+      { $match: match },
+      { $group: { _id: "$telegramId", gamesPlayed: { $sum: 1 } } },
+      { $sort: { gamesPlayed: -1 } },
+      { $limit: limit },
+    ]);
+
+    const ids = top.map(x => x._id);
+    const users = await User.find({ telegramId: { $in: ids } })
+      .select("telegramId firstName username")
+      .lean();
+    const userMap = {};
+    users.forEach(u => { userMap[u.telegramId] = u; });
+
+    const leaderboard = top.map((row, i) => ({
+      rank: i + 1,
+      telegramId: row._id,
+      gamesPlayed: row.gamesPlayed,
+      firstName: userMap[row._id]?.firstName || "Player",
+      username: userMap[row._id]?.username || "",
+      prize: t.prizePerWinner,
+      currency: t.prizeCurrency,
+    }));
+
+    res.json({
+      tournament: t,
+      leaderboard,
+      totalPlayers: leaderboard.length,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: list all tournaments
+app.post("/api/admin/tournaments/list", async (req, res) => {
+  try {
+    if (String(req.body?.ownerId) !== OWNER_ID_STR) return res.status(403).json({ error: "Unauthorized" });
+    const list = await Tournament.find().sort({ createdAt: -1 }).lean();
+    res.json({ tournaments: list });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: create tournament
+app.post("/api/admin/tournaments/create", async (req, res) => {
+  try {
+    const { ownerId, title, imageUrl, prizeCurrency, tier, prizePerWinner, gameFilter, endsAt } = req.body || {};
+    if (String(ownerId) !== OWNER_ID_STR) return res.status(403).json({ error: "Unauthorized" });
+    if (!title || !prizeCurrency || !prizePerWinner) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    if (!["star", "dollar"].includes(prizeCurrency)) {
+      return res.status(400).json({ error: "prizeCurrency must be star or dollar" });
+    }
+    const tierNum = Number(tier) === 100 ? 100 : 50;
+    const t = await Tournament.create({
+      title: String(title),
+      imageUrl: imageUrl || "",
+      prizeCurrency,
+      tier: tierNum,
+      prizePerWinner: Number(prizePerWinner),
+      gameFilter: gameFilter || "",
+      endsAt: endsAt ? new Date(endsAt) : null,
+      active: true,
+    });
+    res.json({ success: true, tournament: t });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: delete tournament
+app.post("/api/admin/tournaments/delete", async (req, res) => {
+  try {
+    const { ownerId, tournamentId } = req.body || {};
+    if (String(ownerId) !== OWNER_ID_STR) return res.status(403).json({ error: "Unauthorized" });
+    if (!tournamentId) return res.status(400).json({ error: "Missing tournamentId" });
+    await Tournament.deleteOne({ _id: tournamentId });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: distribute prizes to winners (credits prizeCurrency winning balance)
+app.post("/api/admin/tournaments/distribute", async (req, res) => {
+  try {
+    const { ownerId, tournamentId } = req.body || {};
+    if (String(ownerId) !== OWNER_ID_STR) return res.status(403).json({ error: "Unauthorized" });
+    const t = await Tournament.findById(tournamentId);
+    if (!t) return res.status(404).json({ error: "Tournament not found" });
+
+    const match = { type: "bet", status: "completed", createdAt: { $gte: t.startedAt } };
+    if (t.endsAt) match.createdAt.$lte = t.endsAt;
+    if (t.gameFilter) match.game = t.gameFilter;
+
+    const top = await Transaction.aggregate([
+      { $match: match },
+      { $group: { _id: "$telegramId", gamesPlayed: { $sum: 1 } } },
+      { $sort: { gamesPlayed: -1 } },
+      { $limit: t.tier || 50 },
+    ]);
+
+    const winningField = t.prizeCurrency === "dollar" ? "dollarWinning" : "starWinning";
+    let credited = 0;
+    for (const row of top) {
+      const u = await User.findOne({ telegramId: row._id });
+      if (!u) continue;
+      u[winningField] = (u[winningField] || 0) + t.prizePerWinner;
+      await u.save();
+      await Transaction.create({
+        telegramId: row._id,
+        type: "bonus",
+        currency: t.prizeCurrency,
+        amount: t.prizePerWinner,
+        status: "completed",
+        description: `Tournament prize: ${t.title}`,
+      });
+      credited++;
+    }
+    t.active = false;
+    await t.save();
+    res.json({ success: true, credited });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
