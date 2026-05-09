@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Users, Star, DollarSign, RefreshCw, User, CreditCard, Plus, Minus, X, Copy, Tag, Send, Trash2, Trophy } from "lucide-react";
+import { ArrowLeft, Users, Star, DollarSign, RefreshCw, User, CreditCard, Plus, Minus, X, Copy, Tag, Send, Trash2, Trophy, Gamepad2, TrendingUp, TrendingDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { getTelegramUser } from "@/lib/telegram";
@@ -48,7 +48,17 @@ interface WithdrawalRequest {
   withdrawalNetwork?: string;
 }
 
-type Tab = "stats" | "users" | "withdrawals" | "offers" | "tournaments";
+type Tab = "stats" | "users" | "withdrawals" | "offers" | "tournaments" | "games";
+
+interface GameStat {
+  game: string;
+  dollarWin: number;
+  starWin: number;
+  dollarLoss: number;
+  starLoss: number;
+  winCount: number;
+  betCount: number;
+}
 
 interface PrizeTier { fromRank: number; toRank: number; amount: number; }
 interface AdminTournament {
@@ -141,6 +151,23 @@ const AdminPanel = () => {
       const data = await res.json();
       if (res.ok) setTournaments(data.tournaments || []);
     } catch { /* ignore */ }
+  };
+
+  // Per-game stats
+  const [gameStats, setGameStats] = useState<GameStat[]>([]);
+  const [loadingGames, setLoadingGames] = useState(false);
+  const fetchGameStats = async () => {
+    setLoadingGames(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/games-stats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerId: String(OWNER_ID) }),
+      });
+      const data = await res.json();
+      if (res.ok) setGameStats(data.games || []);
+    } catch { /* ignore */ }
+    setLoadingGames(false);
   };
 
   const handleImageFile = (file: File) => {
@@ -400,7 +427,7 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    if (isOwner) { fetchAll(); fetchAviatorProfit(); fetchManualQueue("dollar"); fetchOffers(); fetchTournaments(); }
+    if (isOwner) { fetchAll(); fetchAviatorProfit(); fetchManualQueue("dollar"); fetchOffers(); fetchTournaments(); fetchGameStats(); }
   }, []);
 
   const handleAdjust = async () => {
@@ -566,6 +593,7 @@ const AdminPanel = () => {
     { key: "withdrawals", label: "Wd", icon: <CreditCard className="h-4 w-4" /> },
     { key: "offers", label: "Offers", icon: <Tag className="h-4 w-4" /> },
     { key: "tournaments", label: "Tournament", icon: <Trophy className="h-4 w-4" /> },
+    { key: "games", label: "Games Win/Loss", icon: <Gamepad2 className="h-4 w-4" /> },
   ];
 
   return (
@@ -1397,6 +1425,94 @@ const AdminPanel = () => {
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Games Win/Loss Tab */}
+          {activeTab === "games" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold text-sm" style={{ color: "hsl(45 90% 70%)" }}>🎮 Per-Game Win / Loss</h2>
+                <button
+                  onClick={fetchGameStats}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1"
+                  style={{ background: "hsla(45, 80%, 50%, 0.2)", color: "hsl(45 90% 70%)" }}
+                >
+                  <RefreshCw className={`h-3 w-3 ${loadingGames ? "animate-spin" : ""}`} /> Refresh
+                </button>
+              </div>
+              <p className="text-[10px]" style={{ color: "hsl(0 0% 60%)" }}>
+                <span className="font-bold" style={{ color: "hsl(120 60% 60%)" }}>Win</span> = total paid to users · <span className="font-bold" style={{ color: "hsl(0 70% 65%)" }}>Loss</span> = total bets users lost (house income)
+              </p>
+
+              {gameStats.length === 0 && !loadingGames && (
+                <div className="rounded-xl p-4 text-center text-xs" style={{ background: "hsla(260, 40%, 18%, 0.6)", color: "hsl(0 0% 60%)" }}>
+                  No game activity yet.
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                {gameStats.map((g) => {
+                  const dollarNet = g.dollarLoss - g.dollarWin;
+                  const starNet = g.starLoss - g.starWin;
+                  return (
+                    <div key={g.game} className="rounded-xl p-3" style={{
+                      background: "linear-gradient(135deg, hsla(260, 50%, 25%, 0.6), hsla(280, 45%, 20%, 0.6))",
+                      border: "1px solid hsla(45, 80%, 50%, 0.25)",
+                    }}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Gamepad2 className="h-4 w-4" style={{ color: "hsl(45 90% 65%)" }} />
+                        <h3 className="font-bold text-sm capitalize" style={{ color: "hsl(45 90% 75%)" }}>
+                          {g.game.replace(/-/g, " ")}
+                        </h3>
+                        <span className="ml-auto text-[10px]" style={{ color: "hsl(0 0% 55%)" }}>
+                          {g.betCount} bets · {g.winCount} wins
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Dollar */}
+                        <div className="rounded-lg p-2" style={{ background: "hsla(120, 40%, 20%, 0.4)", border: "1px solid hsla(120, 60%, 40%, 0.25)" }}>
+                          <p className="text-[9px] font-bold mb-1" style={{ color: "hsl(120 60% 70%)" }}>$ DOLLAR</p>
+                          <div className="flex items-center justify-between text-[10px] mb-0.5">
+                            <span style={{ color: "hsl(0 0% 65%)" }}><TrendingUp className="h-3 w-3 inline" /> Win</span>
+                            <span className="font-bold" style={{ color: "hsl(120 60% 65%)" }}>${g.dollarWin.toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] mb-0.5">
+                            <span style={{ color: "hsl(0 0% 65%)" }}><TrendingDown className="h-3 w-3 inline" /> Loss</span>
+                            <span className="font-bold" style={{ color: "hsl(0 70% 70%)" }}>${g.dollarLoss.toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] mt-1 pt-1" style={{ borderTop: "1px dashed hsla(45, 60%, 50%, 0.2)" }}>
+                            <span style={{ color: "hsl(45 80% 65%)" }}>House</span>
+                            <span className="font-bold" style={{ color: dollarNet >= 0 ? "hsl(45 95% 65%)" : "hsl(0 70% 65%)" }}>
+                              {dollarNet >= 0 ? "+" : ""}${dollarNet.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Star */}
+                        <div className="rounded-lg p-2" style={{ background: "hsla(45, 60%, 25%, 0.4)", border: "1px solid hsla(45, 80%, 50%, 0.25)" }}>
+                          <p className="text-[9px] font-bold mb-1" style={{ color: "hsl(45 90% 70%)" }}>⭐ STAR</p>
+                          <div className="flex items-center justify-between text-[10px] mb-0.5">
+                            <span style={{ color: "hsl(0 0% 65%)" }}><TrendingUp className="h-3 w-3 inline" /> Win</span>
+                            <span className="font-bold" style={{ color: "hsl(120 60% 65%)" }}>⭐{g.starWin.toFixed(0)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] mb-0.5">
+                            <span style={{ color: "hsl(0 0% 65%)" }}><TrendingDown className="h-3 w-3 inline" /> Loss</span>
+                            <span className="font-bold" style={{ color: "hsl(0 70% 70%)" }}>⭐{g.starLoss.toFixed(0)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] mt-1 pt-1" style={{ borderTop: "1px dashed hsla(45, 60%, 50%, 0.2)" }}>
+                            <span style={{ color: "hsl(45 80% 65%)" }}>House</span>
+                            <span className="font-bold" style={{ color: starNet >= 0 ? "hsl(45 95% 65%)" : "hsl(0 70% 65%)" }}>
+                              {starNet >= 0 ? "+" : ""}⭐{starNet.toFixed(0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
