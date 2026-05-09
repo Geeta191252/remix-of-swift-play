@@ -275,6 +275,112 @@ const MarketScreen = ({ onGoToWallet }: MarketScreenProps) => {
           After payment, bonus will be credited automatically by admin.
         </p>
       )}
+
+      {/* Coin picker dialog for $ offers */}
+      <AnimatePresence>
+        {coinPickerOffer && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-end justify-center"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ background: "hsla(260, 50%, 8%, 0.85)" }}
+            onClick={() => setCoinPickerOffer(null)}
+          >
+            <motion.div
+              initial={{ y: 400 }} animate={{ y: 0 }} exit={{ y: 400 }}
+              transition={{ type: "spring", damping: 25 }}
+              className="w-full max-w-md rounded-t-3xl p-5 pb-8"
+              style={{ background: "linear-gradient(180deg, hsl(260 45% 18%), hsl(270 50% 12%))", border: "1px solid hsla(280, 60%, 45%, 0.4)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-black text-lg" style={{ color: "hsl(45 95% 70%)" }}>Pay ${coinPickerOffer.payAmount} with…</h3>
+                <button onClick={() => setCoinPickerOffer(null)}>
+                  <X className="h-5 w-5" style={{ color: "hsl(260 30% 70%)" }} />
+                </button>
+              </div>
+              <p className="text-xs mb-3" style={{ color: "hsl(260 30% 75%)" }}>
+                Choose a crypto. Bonus: {coinPickerOffer.bonusLabel || `Get $${coinPickerOffer.getAmount}`}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {CRYPTO_OPTIONS.map((c) => (
+                  <motion.button
+                    key={c.id}
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => startCryptoPayment(coinPickerOffer, c.id)}
+                    className="rounded-xl py-3 font-black flex flex-col items-center gap-1"
+                    style={{
+                      background: "linear-gradient(135deg, hsl(280 60% 35%), hsl(300 55% 30%))",
+                      border: "1px solid hsla(280, 70%, 50%, 0.5)",
+                      color: "hsl(0 0% 100%)",
+                    }}
+                  >
+                    <span className="text-2xl">{c.emoji}</span>
+                    <span className="text-xs">{c.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Crypto payment address dialog */}
+      <AnimatePresence>
+        {cryptoPayment && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-end justify-center"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ background: "hsla(260, 50%, 8%, 0.9)" }}
+            onClick={() => setCryptoPayment(null)}
+          >
+            <motion.div
+              initial={{ y: 400 }} animate={{ y: 0 }} exit={{ y: 400 }}
+              transition={{ type: "spring", damping: 25 }}
+              className="w-full max-w-md rounded-t-3xl p-5 pb-8"
+              style={{ background: "linear-gradient(180deg, hsl(260 45% 18%), hsl(270 50% 12%))", border: "1px solid hsla(280, 60%, 45%, 0.4)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-black text-base" style={{ color: "hsl(45 95% 70%)" }}>Send Payment</h3>
+                <button onClick={() => setCryptoPayment(null)}>
+                  <X className="h-5 w-5" style={{ color: "hsl(260 30% 70%)" }} />
+                </button>
+              </div>
+              <p className="text-[11px] mb-3" style={{ color: "hsl(260 30% 75%)" }}>{cryptoPayment.offerLabel}</p>
+
+              <div className="rounded-2xl p-4 mb-3" style={{ background: "hsla(0, 0%, 0%, 0.4)", border: "1px solid hsla(45, 70%, 55%, 0.35)" }}>
+                <p className="text-[11px] mb-1" style={{ color: "hsl(260 30% 75%)" }}>Send exactly</p>
+                <p className="font-black text-xl" style={{ color: "hsl(45 95% 70%)" }}>
+                  {cryptoPayment.payAmount} {cryptoPayment.payCurrency.toUpperCase()}
+                </p>
+              </div>
+
+              <div className="rounded-2xl p-3 mb-3" style={{ background: "hsla(0, 0%, 0%, 0.4)", border: "1px solid hsla(280, 50%, 50%, 0.3)" }}>
+                <p className="text-[11px] mb-1" style={{ color: "hsl(260 30% 75%)" }}>{cryptoPayment.payCurrency.toUpperCase()} Address</p>
+                <p className="text-xs font-mono break-all select-all" style={{ color: "hsl(0 0% 100%)" }}>{cryptoPayment.payAddress}</p>
+              </div>
+
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(cryptoPayment.payAddress);
+                  toast({ title: "Copied!", description: "Address copied to clipboard." });
+                }}
+                className="w-full rounded-xl py-3 font-bold flex items-center justify-center gap-2"
+                style={{
+                  background: "linear-gradient(135deg, hsl(140 75% 45%), hsl(150 70% 40%))",
+                  color: "hsl(0 0% 100%)",
+                  boxShadow: "0 4px 14px hsla(140, 70%, 40%, 0.4)",
+                }}
+              >
+                <Copy className="h-4 w-4" /> Copy Address
+              </button>
+              <p className="text-[10px] text-center mt-3" style={{ color: "hsl(260 25% 65%)" }}>
+                Bonus auto-credited after blockchain confirmation.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
