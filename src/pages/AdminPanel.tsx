@@ -50,6 +50,7 @@ interface WithdrawalRequest {
 
 type Tab = "stats" | "users" | "withdrawals" | "offers" | "tournaments";
 
+interface PrizeTier { fromRank: number; toRank: number; amount: number; }
 interface AdminTournament {
   _id: string;
   title: string;
@@ -57,6 +58,8 @@ interface AdminTournament {
   prizeCurrency: "dollar" | "star";
   tier: number;
   prizePerWinner: number;
+  prizeTiers?: PrizeTier[];
+  endsAt?: string | null;
   active: boolean;
   createdAt: string;
 }
