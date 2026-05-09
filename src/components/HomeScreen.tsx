@@ -43,7 +43,7 @@ const GameTile = ({ image, name, description, badge, badgeGradient, borderGradie
     whileTap={{ scale: 0.9 }}
     whileHover={{ scale: 1.05, y: -4 }}
     onClick={onClick}
-    className="cursor-pointer flex-shrink-0 w-[150px]"
+    className="cursor-pointer w-full"
   >
     <div className="relative rounded-2xl overflow-hidden aspect-square mb-2" style={{
       padding: "2px",
