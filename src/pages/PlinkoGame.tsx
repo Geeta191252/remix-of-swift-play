@@ -204,7 +204,12 @@ const PlinkoGame = () => {
     else setLocalStarAdj((p) => p - bet);
     if (soundRef.current) playBetSound();
 
-    const target = pickRiggedBucket(lines, risk);
+    // Rigging: 9 losses (~0.4x–0.7x) then every 10th bet a ~2x win
+    betCounterRef.current += 1;
+    const isWinTurn = betCounterRef.current % 10 === 0;
+    const target = isWinTurn
+      ? pickBucketNearMultiplier(multipliers, 2)
+      : pickLosingBucket(multipliers);
     const moves = buildPath(target, lines);
     const path = computePath(moves);
 
