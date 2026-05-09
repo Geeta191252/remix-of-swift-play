@@ -1,7 +1,7 @@
-import { motion } from "framer-motion";
-import { Clock, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock, Sparkles, X, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { initiatePayment, getTelegram, requestInvoice } from "@/lib/telegram";
+import { getTelegram, requestInvoice } from "@/lib/telegram";
 import { useBalanceContext } from "@/contexts/BalanceContext";
 import { useEffect, useState } from "react";
 
@@ -20,6 +20,17 @@ interface BackendOffer {
 }
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "https://broken-bria-chetan1-ea890b93.koyeb.app/api";
+
+const cryptoApiTicker: Record<string, string> = { usdt: "usdttrc20" };
+const CRYPTO_OPTIONS: Array<{ id: string; label: string; emoji: string }> = [
+  { id: "btc", label: "BTC", emoji: "₿" },
+  { id: "ltc", label: "LTC", emoji: "Ł" },
+  { id: "usdt", label: "USDT", emoji: "₮" },
+  { id: "ton", label: "TON", emoji: "💎" },
+  { id: "sol", label: "SOL", emoji: "◎" },
+  { id: "trx", label: "TRX", emoji: "🔺" },
+  { id: "doge", label: "DOGE", emoji: "🐕" },
+];
 
 const gradientFor = (idx: number) => {
   const list = [
