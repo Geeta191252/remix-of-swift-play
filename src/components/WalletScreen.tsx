@@ -471,43 +471,43 @@ const WalletScreen = () => {
   };
 
   return (
-    <div className="px-4 pt-4 space-y-5">
-      <h2 className="font-bold text-xl text-foreground">Wallet</h2>
+    <div className="px-3 pt-3 space-y-3">
+      <h2 className="font-bold text-base text-foreground">Wallet</h2>
 
       {/* Balances */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-border rounded-2xl p-4 space-y-1"
+          className="bg-card border border-border rounded-xl p-2.5 space-y-0.5"
         >
-          <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
-            <DollarSign className="h-3.5 w-3.5" /> Dollar ($)
+          <div className="flex items-center gap-1 text-muted-foreground text-[10px] font-medium">
+            <DollarSign className="h-3 w-3" /> Dollar ($)
           </div>
-          <p className="font-bold text-2xl text-foreground">${totalDollarWallet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="font-bold text-base text-foreground">${totalDollarWallet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="bg-card border border-border rounded-2xl p-4 space-y-1"
+          className="bg-card border border-border rounded-xl p-2.5 space-y-0.5"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 text-muted-foreground text-xs font-medium">
-                <Star className="h-3.5 w-3.5" /> Stars
+          <div className="flex items-center justify-between gap-1">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1 text-muted-foreground text-[10px] font-medium">
+                <Star className="h-3 w-3" /> Stars
               </div>
-              <p className="font-bold text-2xl text-foreground">{totalStarWallet.toLocaleString()}</p>
+              <p className="font-bold text-base text-foreground">{totalStarWallet.toLocaleString()}</p>
             </div>
             <Button
               size="sm"
               variant="outline"
-              className="text-xs border-primary/50 text-primary hover:bg-primary/10"
+              className="h-7 px-2 text-[10px] border-primary/50 text-primary hover:bg-primary/10"
               onClick={() => {
                 setAmountDialog({ open: true, action: "deposit", currency: "star" });
               }}
             >
-              + Add Fund
+              + Add
             </Button>
           </div>
         </motion.div>
@@ -519,51 +519,51 @@ const WalletScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12 }}
         id="crypto-deposit"
-        className="bg-card border border-border rounded-2xl p-4 space-y-3"
+        className="bg-card border border-border rounded-xl p-3 space-y-2"
       >
-        <div className="flex items-center gap-2">
-          <Coins className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-sm text-foreground">Crypto Deposit</h3>
+        <div className="flex items-center gap-1.5">
+          <Coins className="h-3.5 w-3.5 text-primary" />
+          <h3 className="font-semibold text-xs text-foreground">Crypto Deposit</h3>
         </div>
-        <p className="text-xs text-muted-foreground">Pay with any crypto → Get $ in wallet</p>
+        <p className="text-[10px] text-muted-foreground">Pay with any crypto → Get $ in wallet</p>
 
         {/* Crypto selector */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {["btc", "ltc", "ton", "sol", "trx", "doge"].map((coin) => (
             <button
               key={coin}
               onClick={() => setCryptoCurrency(coin)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex flex-col items-center ${
+              className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-colors flex flex-col items-center leading-tight ${
                 cryptoCurrency === coin
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
               <span>{coin.toUpperCase()}</span>
-              <span className="text-[9px] font-normal opacity-75">min ${cryptoMins[coin] || 1}</span>
+              <span className="text-[8px] font-normal opacity-75">min ${cryptoMins[coin] || 1}</span>
             </button>
           ))}
         </div>
 
         {/* Amount input */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <div className="flex-1 relative">
             <Input
               type="number"
               placeholder={`USD amount (min $${cryptoMins[cryptoCurrency] || 1})`}
               value={cryptoAmount}
               onChange={(e) => setCryptoAmount(e.target.value)}
-              className="pr-8 rounded-xl bg-background"
+              className="pr-7 rounded-lg bg-background h-9 text-xs"
               min={cryptoMins[cryptoCurrency] || 1}
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>
           </div>
           <Button
-            className="rounded-xl"
+            className="rounded-lg h-9 px-3"
             disabled={cryptoProcessing || !cryptoAmount}
             onClick={handleCryptoDeposit}
           >
-            {cryptoProcessing ? "..." : <><ExternalLink className="h-4 w-4" /></>}
+            {cryptoProcessing ? "..." : <ExternalLink className="h-3.5 w-3.5" />}
           </Button>
         </div>
         {/* Payment details shown in-app */}
@@ -628,16 +628,16 @@ const WalletScreen = () => {
             </motion.div>
           )}
         </AnimatePresence>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-[9px] text-muted-foreground">
           Powered by NOWPayments • Balance updates automatically after payment confirmation
         </p>
       </motion.div>
 
       {/* Winning Actions */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           variant="outline"
-          className="rounded-xl h-14 w-full border-green-500/30 text-green-500 hover:bg-green-500/10 flex flex-col items-center justify-center gap-0.5"
+          className="rounded-lg h-11 w-full border-green-500/30 text-green-500 hover:bg-green-500/10 flex flex-col items-center justify-center gap-0"
           onClick={() => {
             if (dollarWinnings < 10) {
               toast({ title: "Minimum $10", description: "You need at least $10 in winnings to withdraw.", variant: "destructive" });
@@ -651,31 +651,31 @@ const WalletScreen = () => {
             setWithdrawDialog(true);
           }}
         >
-          <span className="flex items-center text-xs">
-            <DollarSign className="h-3.5 w-3.5 mr-0.5" /> Winning Withdraw
+          <span className="flex items-center text-[10px]">
+            <DollarSign className="h-3 w-3 mr-0.5" /> Winning Withdraw
           </span>
-          <span className="text-sm font-bold">${dollarWinnings.toFixed(2)}</span>
+          <span className="text-xs font-bold">${dollarWinnings.toFixed(2)}</span>
         </Button>
         <Button
           variant="outline"
-          className="rounded-xl h-14 w-full border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10 flex flex-col items-center justify-center gap-0.5"
+          className="rounded-lg h-11 w-full border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10 flex flex-col items-center justify-center gap-0"
           onClick={() => {
             const el = document.getElementById("star-converter");
             el?.scrollIntoView({ behavior: "smooth" });
           }}
         >
-          <span className="flex items-center text-xs">
-            <Star className="h-3.5 w-3.5 mr-0.5" /> Winning Star Convert
+          <span className="flex items-center text-[10px]">
+            <Star className="h-3 w-3 mr-0.5" /> Winning Star Convert
           </span>
-          <span className="text-sm font-bold">⭐ {starWinnings.toLocaleString()}</span>
+          <span className="text-xs font-bold">⭐ {starWinnings.toLocaleString()}</span>
         </Button>
       </div>
 
       {/* Withdraw */}
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 gap-2">
         <Button
           variant="outline"
-          className="rounded-xl h-12 w-full"
+          className="rounded-lg h-10 w-full text-xs"
           onClick={() => {
             setWithdrawCurrency("dollar");
             setWithdrawAmount("");
@@ -685,7 +685,7 @@ const WalletScreen = () => {
             setWithdrawDialog(true);
           }}
         >
-          <ArrowUpRight className="h-4 w-4 mr-2" /> Withdraw
+          <ArrowUpRight className="h-3.5 w-3.5 mr-1.5" /> Withdraw
         </Button>
       </div>
 
@@ -695,32 +695,32 @@ const WalletScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         id="star-converter"
-        className="bg-card border border-border rounded-2xl p-4 space-y-3"
+        className="bg-card border border-border rounded-xl p-3 space-y-2"
       >
-        <div className="flex items-center gap-2">
-          <ArrowRightLeft className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-sm text-foreground">Star → Dollar Converter</h3>
+        <div className="flex items-center gap-1.5">
+          <ArrowRightLeft className="h-3.5 w-3.5 text-primary" />
+          <h3 className="font-semibold text-xs text-foreground">Star → Dollar Converter</h3>
         </div>
-        <p className="text-xs text-muted-foreground">Rate: {STAR_TO_DOLLAR_RATE} ⭐ = $1.00</p>
-        <div className="flex items-center gap-2">
+        <p className="text-[10px] text-muted-foreground">Rate: {STAR_TO_DOLLAR_RATE} ⭐ = $1.00</p>
+        <div className="flex items-center gap-1.5">
           <div className="flex-1 relative">
             <Input
               type="number"
               placeholder={`Min ${STAR_TO_DOLLAR_RATE}`}
               value={convertStars}
               onChange={(e) => setConvertStars(e.target.value)}
-              className="pr-8 rounded-xl bg-background"
+              className="pr-7 rounded-lg bg-background h-9 text-xs"
               min={STAR_TO_DOLLAR_RATE}
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">⭐</span>
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">⭐</span>
           </div>
-          <ArrowRightLeft className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div className="bg-muted/50 border border-border rounded-xl px-3 py-2 min-w-[80px] text-center">
-            <span className="font-bold text-sm text-foreground">${dollarOutput}</span>
+          <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <div className="bg-muted/50 border border-border rounded-lg px-2 py-1.5 min-w-[70px] text-center">
+            <span className="font-bold text-xs text-foreground">${dollarOutput}</span>
           </div>
         </div>
         <Button
-          className="w-full rounded-xl h-10"
+          className="w-full rounded-lg h-9 text-xs"
           disabled={converting || starInputNum < STAR_TO_DOLLAR_RATE}
           onClick={handleConvert}
         >
@@ -730,15 +730,14 @@ const WalletScreen = () => {
 
       {/* Transactions */}
       <div>
-        <h3 className="font-semibold text-foreground text-sm mb-3">Recent Transactions</h3>
-        <div className="space-y-2">
+        <h3 className="font-semibold text-foreground text-xs mb-2">Recent Transactions</h3>
+        <div className="space-y-1.5">
         {transactions.map((tx: any, i: number) => {
             const isCancelled = tx.status === "failed" || tx.status === "refunded";
             const isPositive = !isCancelled && (tx.type === "win" || tx.type === "bonus" || tx.type === "deposit" || tx.type === "ton_deposit" || tx.type === "referral");
             const isTonTx = tx.type === "ton_deposit" || tx.type === "ton_withdraw";
             const isStarTx = tx.currency === "star";
             const currencySymbol = isStarTx ? "⭐" : "$";
-            // For TON transactions, show USD equivalent; for star show star amount
             const displayValue = isTonTx && tx.usdEquivalent
               ? Number(tx.usdEquivalent).toFixed(2)
               : String(tx.amount).replace(/^[+-]/, "");
@@ -757,24 +756,24 @@ const WalletScreen = () => {
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.06 }}
-                className="flex items-center gap-3 bg-card border border-border rounded-2xl p-3"
+                className="flex items-center gap-2 bg-card border border-border rounded-xl p-2"
               >
-                <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${iconColor}`}>
+                <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${iconColor}`}>
                   {isCancelled ? (
-                    <span className="text-yellow-500 text-xs font-bold">✕</span>
+                    <span className="text-yellow-500 text-[10px] font-bold">✕</span>
                   ) : isPositive ? (
-                    <ArrowDownLeft className="h-4 w-4 text-green-500" />
+                    <ArrowDownLeft className="h-3.5 w-3.5 text-green-500" />
                   ) : (
-                    <ArrowUpRight className="h-4 w-4 text-red-500" />
+                    <ArrowUpRight className="h-3.5 w-3.5 text-red-500" />
                   )}
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-sm text-foreground">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-xs text-foreground truncate">
                     {isCancelled ? `Cancelled: ${tx.description || tx.type}` : (tx.game || tx.description || tx.type)}
                   </h4>
-                  <p className="text-xs text-muted-foreground">{timeDisplay}</p>
+                  <p className="text-[10px] text-muted-foreground">{timeDisplay}</p>
                 </div>
-                <span className={`text-sm font-bold ${textColor}`}>
+                <span className={`text-xs font-bold ${textColor}`}>
                   {currencySymbol} {isCancelled ? "Cancel" : displayAmount}
                 </span>
               </motion.div>
