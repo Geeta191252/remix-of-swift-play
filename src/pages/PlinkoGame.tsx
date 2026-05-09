@@ -134,18 +134,20 @@ const PlinkoGame = () => {
   // Geometry
   const PEG_TOP = 4;
   const PEG_BOTTOM = 82;
-  // Adapt horizontal spacing based on lines so the bottom row fits
-  // Match peg gap to bucket width so bottom-row pegs align with bucket dividers.
-  // Buckets occupy ~96% of board (px-[2%]) split into (lines+1) buckets.
-  // Each bucket width = 96/(lines+1)%. Peg gap (SP/2) must equal bucket width.
-  const HORIZONTAL_SPACING = useMemo(() => 192 / (lines + 1), [lines]);
+  // Board geometry: pegs are centered row-by-row and the bottom row spans
+  // the same 2%–98% width used by the multiplier buckets.
+  const BOARD_SIDE_INSET = 2;
+  const PLAY_WIDTH = 100 - BOARD_SIDE_INSET * 2;
+  const BUCKET_WIDTH = useMemo(() => PLAY_WIDTH / (lines + 1), [lines]);
+  const PEG_GAP = BUCKET_WIDTH;
+  const BALL_STEP_X = BUCKET_WIDTH / 2;
 
   const computePath = useCallback((moves: boolean[]) => {
     const points: { x: number; y: number }[] = [];
     let x = 50;
     points.push({ x, y: PEG_TOP - 4 });
     const rowGap = (PEG_BOTTOM - PEG_TOP) / Math.max(1, lines - 1);
-    const half = HORIZONTAL_SPACING / 2;
+    const half = BALL_STEP_X;
     for (let r = 0; r < lines; r++) {
       const y = PEG_TOP + r * rowGap;
       points.push({ x, y });
@@ -153,7 +155,7 @@ const PlinkoGame = () => {
     }
     points.push({ x, y: PEG_BOTTOM + 6 });
     return points;
-  }, [lines, HORIZONTAL_SPACING]);
+  }, [lines, BALL_STEP_X]);
 
   const drop = useCallback(async () => {
     if (dropping) return;
