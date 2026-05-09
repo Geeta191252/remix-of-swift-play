@@ -586,13 +586,13 @@ const AdminPanel = () => {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 px-4 mt-3">
+      {/* Tabs - vertical stack */}
+      <div className="flex flex-col gap-1.5 px-3 mt-2 max-w-md mx-auto">
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all"
+            className="flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all"
             style={{
               background: activeTab === tab.key ? "hsla(45, 80%, 50%, 0.25)" : "hsla(260, 40%, 30%, 0.4)",
               color: activeTab === tab.key ? "hsl(45 90% 70%)" : "hsl(0 0% 55%)",
