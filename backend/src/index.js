@@ -843,25 +843,14 @@ app.post("/api/telegram-webhook", async (req, res) => {
 
               referrer.referralCount = (referrer.referralCount || 0) + 1;
               const count = referrer.referralCount;
-              const reward = 10;
-              referrer.starBalance = (referrer.starBalance || 0) + reward;
               await referrer.save();
 
-              await Transaction.create({
-                telegramId: numericReferrerId,
-                type: "referral",
-                currency: "star",
-                amount: reward,
-                status: "completed",
-                description: `Referral reward: ${reward} ⭐ (referred user ${numericUserId})`,
-              });
-
-              // Notify referrer
+              // Reward unlocks only after referred user makes a deposit
               try {
                 await bot.sendMessage(numericReferrerId,
                   `🎉 *New Referral!*\n\n` +
                   `👤 ${firstName} joined using your link!\n` +
-                  `💰 You earned ${reward} ⭐!\n` +
+                  `🔒 Reward of 5 ⭐ will unlock once they make their first deposit.\n` +
                   `📊 Total referrals: ${count}`,
                   { parse_mode: "Markdown" }
                 );
