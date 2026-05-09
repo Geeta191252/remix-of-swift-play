@@ -347,7 +347,7 @@ const PlinkoGame = () => {
           alt=""
           aria-hidden
           className="absolute left-0 top-0 bottom-0 pointer-events-none select-none z-20"
-          style={{ width: "13%", height: "100%", objectFit: "fill", filter: "drop-shadow(0 4px 8px hsla(0,0%,0%,0.5))" }}
+          style={{ width: "11%", height: "100%", objectFit: "fill", filter: "drop-shadow(0 4px 8px hsla(0,0%,0%,0.5))" }}
           draggable={false}
         />
         <img
@@ -355,7 +355,7 @@ const PlinkoGame = () => {
           alt=""
           aria-hidden
           className="absolute right-0 top-0 bottom-0 pointer-events-none select-none z-20"
-          style={{ width: "13%", height: "100%", objectFit: "fill", filter: "drop-shadow(0 4px 8px hsla(0,0%,0%,0.5))", transform: "scaleX(-1)" }}
+          style={{ width: "11%", height: "100%", objectFit: "fill", filter: "drop-shadow(0 4px 8px hsla(0,0%,0%,0.5))", transform: "scaleX(-1)" }}
           draggable={false}
         />
         <div
@@ -432,7 +432,7 @@ const PlinkoGame = () => {
 
           {/* Buckets — drum style with multiplier label below */}
           <div className="absolute left-0 right-0" style={{ bottom: 0, height: "14%" }}>
-            <div className="flex w-full h-full px-[2%] items-end">
+            <div className="flex w-full h-full px-[10%] items-end">
               {multipliers.map((m, i) => {
                 const isHit = highlightBucket === i;
                 // Vibrant drum palette cycling per bucket
