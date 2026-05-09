@@ -134,8 +134,8 @@ const PlinkoGame = () => {
   const currentBalance = activeWallet === "dollar" ? gameDollarBalance : gameStarBalance;
 
   // Geometry
-  const PEG_TOP = 12;
-  const PEG_BOTTOM = 84;
+  const PEG_TOP = 8;
+  const PEG_BOTTOM = 72;
   // Board geometry: pegs are centered row-by-row and the bottom row spans
   // the same 2%–98% width used by the multiplier buckets.
   const BOARD_SIDE_INSET = 10;
