@@ -121,7 +121,7 @@ const PlinkoGame = () => {
 
   const [activeWallet, setActiveWallet] = useState<"dollar" | "star">("dollar");
   const [bet, setBet] = useState(1);
-  const [lines, setLines] = useState(16);
+  const [lines, setLines] = useState(8);
   const [risk, setRisk] = useState<Risk>("medium");
   const [dropping, setDropping] = useState(false);
   const [ballPath, setBallPath] = useState<{ x: number; y: number }[]>([]);
