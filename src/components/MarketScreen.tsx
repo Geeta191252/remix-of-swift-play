@@ -328,15 +328,15 @@ const MarketScreen = ({ onGoToWallet }: MarketScreenProps) => {
       <AnimatePresence>
         {cryptoPayment && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-end justify-center"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{ background: "hsla(260, 50%, 8%, 0.9)" }}
             onClick={() => setCryptoPayment(null)}
           >
             <motion.div
-              initial={{ y: 400 }} animate={{ y: 0 }} exit={{ y: 400 }}
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", damping: 25 }}
-              className="w-full max-w-md rounded-t-3xl p-5 pb-8"
+              className="w-full max-w-md rounded-2xl p-4 max-h-[85vh] overflow-y-auto"
               style={{ background: "linear-gradient(180deg, hsl(260 45% 18%), hsl(270 50% 12%))", border: "1px solid hsla(280, 60%, 45%, 0.4)" }}
               onClick={(e) => e.stopPropagation()}
             >
