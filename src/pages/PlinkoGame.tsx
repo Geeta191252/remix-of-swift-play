@@ -121,7 +121,7 @@ const PlinkoGame = () => {
 
   const [activeWallet, setActiveWallet] = useState<"dollar" | "star">("dollar");
   const [bet, setBet] = useState(1);
-  const [lines, setLines] = useState(16);
+  const [lines, setLines] = useState(8);
   const [risk, setRisk] = useState<Risk>("medium");
   const [dropping, setDropping] = useState(false);
   const [ballPath, setBallPath] = useState<{ x: number; y: number }[]>([]);
@@ -134,8 +134,8 @@ const PlinkoGame = () => {
   const currentBalance = activeWallet === "dollar" ? gameDollarBalance : gameStarBalance;
 
   // Geometry
-  const PEG_TOP = 12;
-  const PEG_BOTTOM = 84;
+  const PEG_TOP = 8;
+  const PEG_BOTTOM = 72;
   // Board geometry: pegs are centered row-by-row and the bottom row spans
   // the same 2%–98% width used by the multiplier buckets.
   const BOARD_SIDE_INSET = 10;
@@ -394,12 +394,12 @@ const PlinkoGame = () => {
                       className="absolute rounded-full"
                       style={{
                         left: `${x}%`,
-                        width: 5,
-                        height: 5,
+                        width: 8,
+                        height: 8,
                         transform: "translate(-50%, -50%)",
                         background:
-                          "radial-gradient(circle, hsl(45 100% 70%), hsl(35 95% 55%))",
-                        boxShadow: "0 0 4px hsla(45, 95%, 60%, 0.9)",
+                          "radial-gradient(circle at 30% 30%, hsl(50 100% 80%), hsl(40 100% 60%) 55%, hsl(30 95% 45%))",
+                        boxShadow: "0 0 6px hsla(45, 100%, 65%, 0.95), 0 1px 2px hsla(0,0%,0%,0.5)",
                       }}
                     />
                   );
@@ -431,7 +431,7 @@ const PlinkoGame = () => {
           </AnimatePresence>
 
           {/* Buckets — drum style with multiplier label below */}
-          <div className="absolute left-0 right-0" style={{ bottom: 0, height: "14%" }}>
+          <div className="absolute left-0 right-0" style={{ bottom: 0, height: "26%" }}>
             <div className="flex w-full h-full px-[10%] items-end">
               {multipliers.map((m, i) => {
                 const isHit = highlightBucket === i;
@@ -451,46 +451,64 @@ const PlinkoGame = () => {
                     key={i}
                     animate={isHit ? { scale: [1, 1.25, 1], y: [0, -6, 0] } : {}}
                     transition={{ duration: 0.5, repeat: isHit ? 2 : 0 }}
-                    className="flex-1 mx-[1px] flex flex-col items-center justify-end relative"
+                    className="flex-1 mx-[1px] h-full flex flex-col items-center justify-end relative"
                   >
                     {/* Drum body */}
                     <div
-                      className="w-full"
+                      className="w-full relative"
                       style={{
-                        height: "62%",
-                        borderTopLeftRadius: 6,
-                        borderTopRightRadius: 6,
-                        borderBottomLeftRadius: 3,
-                        borderBottomRightRadius: 3,
+                        height: "70%",
+                        borderRadius: 6,
                         background: `linear-gradient(180deg, ${c1} 0%, ${c2} 100%)`,
                         border: isHit
                           ? "1.5px solid hsl(45 100% 70%)"
-                          : "1px solid hsla(0,0%,0%,0.35)",
+                          : "1px solid hsla(0,0%,0%,0.4)",
                         boxShadow: isHit
-                          ? "0 0 12px hsla(45,95%,60%,0.9), inset 0 -4px 6px hsla(0,0%,0%,0.35)"
-                          : "inset 0 -4px 6px hsla(0,0%,0%,0.45), inset 0 2px 3px hsla(0,0%,100%,0.35), 0 2px 3px hsla(0,0%,0%,0.4)",
-                        position: "relative",
+                          ? "0 0 14px hsla(45,95%,60%,0.95), inset 0 -6px 8px hsla(0,0%,0%,0.4)"
+                          : "inset 0 -6px 8px hsla(0,0%,0%,0.5), inset 0 3px 4px hsla(0,0%,100%,0.3), 0 2px 4px hsla(0,0%,0%,0.5)",
                       }}
                     >
-                      {/* Drum top highlight ring */}
+                      {/* Gold rim top */}
                       <div
                         className="absolute left-0 right-0"
                         style={{
-                          top: 1,
-                          height: 4,
-                          borderRadius: "50%",
-                          background:
-                            "linear-gradient(180deg, hsla(0,0%,100%,0.5), hsla(0,0%,100%,0))",
+                          top: -2,
+                          height: 5,
+                          borderRadius: 3,
+                          background: "linear-gradient(180deg, hsl(50 100% 70%), hsl(35 95% 50%))",
+                          boxShadow: "0 1px 2px hsla(0,0%,0%,0.5)",
+                        }}
+                      />
+                      {/* Gold rim bottom */}
+                      <div
+                        className="absolute left-0 right-0"
+                        style={{
+                          bottom: -1,
+                          height: 3,
+                          borderRadius: 2,
+                          background: "linear-gradient(180deg, hsl(45 95% 55%), hsl(30 90% 40%))",
+                        }}
+                      />
+                      {/* Vertical sheen */}
+                      <div
+                        className="absolute"
+                        style={{
+                          left: "30%",
+                          top: 4,
+                          bottom: 4,
+                          width: "12%",
+                          background: "linear-gradient(180deg, hsla(0,0%,100%,0.25), hsla(0,0%,100%,0))",
+                          borderRadius: 2,
                         }}
                       />
                     </div>
                     {/* Multiplier label below */}
                     <span
-                      className="font-black leading-none mt-0.5"
+                      className="font-black leading-none mt-1"
                       style={{
                         color: "hsl(45 95% 70%)",
-                        textShadow: "0 1px 2px hsla(0,0%,0%,0.8)",
-                        fontSize: lines >= 14 ? 7 : lines >= 11 ? 8 : 10,
+                        textShadow: "0 1px 2px hsla(0,0%,0%,0.9)",
+                        fontSize: lines >= 14 ? 8 : lines >= 11 ? 9 : 11,
                       }}
                     >
                       {m}x
