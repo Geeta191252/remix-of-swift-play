@@ -535,6 +535,7 @@ const HomeScreen = () => {
                   />
                 </div>
               </section>
+              )}
 
             </div>
           </motion.div>
