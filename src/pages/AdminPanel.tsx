@@ -1360,8 +1360,13 @@ const AdminPanel = () => {
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-sm truncate" style={{ color: "hsl(45 95% 70%)" }}>{t.title}</p>
                               <p className="text-[11px]" style={{ color: "hsl(0 0% 75%)" }}>
-                                Top {t.tier} • {sym}{t.prizePerWinner} each
+                                Top {t.tier} • {(t.prizeTiers && t.prizeTiers.length) ? `${t.prizeTiers.length} tiers` : `${sym}${t.prizePerWinner} each`}
                               </p>
+                              {t.endsAt && (
+                                <p className="text-[10px]" style={{ color: "hsl(280 60% 75%)" }}>
+                                  Ends: {new Date(t.endsAt).toLocaleString()}
+                                </p>
+                              )}
                               <p className="text-[10px]" style={{ color: "hsl(0 0% 55%)" }}>
                                 {t.active ? "🟢 Active" : "⚫ Closed"}
                               </p>
