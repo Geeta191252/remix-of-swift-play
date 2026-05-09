@@ -341,6 +341,23 @@ const PlinkoGame = () => {
 
       {/* Plinko Board */}
       <div className="flex-1 px-2 relative">
+        {/* Side pillars */}
+        <img
+          src={plinkoPillar}
+          alt=""
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 h-full w-auto pointer-events-none select-none z-20"
+          style={{ filter: "drop-shadow(0 4px 8px hsla(0,0%,0%,0.5))" }}
+          draggable={false}
+        />
+        <img
+          src={plinkoPillar}
+          alt=""
+          aria-hidden
+          className="absolute right-0 top-0 bottom-0 h-full w-auto pointer-events-none select-none z-20"
+          style={{ filter: "drop-shadow(0 4px 8px hsla(0,0%,0%,0.5))", transform: "scaleX(-1)" }}
+          draggable={false}
+        />
         <div
           className="relative w-full mx-auto rounded-2xl overflow-hidden"
           style={{
