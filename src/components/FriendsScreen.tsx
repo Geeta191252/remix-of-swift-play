@@ -95,8 +95,8 @@ const FriendsScreen = () => {
       </div>
 
       <div className="text-xs text-muted-foreground text-center px-2 space-y-1">
-        <p>📌 Har refer par aapko 10 ⭐ milega!</p>
-        <p>📌 You will earn 10 ⭐ for every referral!</p>
+        <p>📌 Har refer par aapko 5 ⭐ milega!</p>
+        <p>📌 You will earn 5 ⭐ for every referral!</p>
         <p>⭐ Refer se milne wale Stars aapke ⭐ Star wallet mein add honge.</p>
         <p>⭐ Stars earned from referrals will be added to your ⭐ Star wallet.</p>
       </div>
