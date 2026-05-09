@@ -404,12 +404,12 @@ const PlinkoGame = () => {
             const pegCount = r + 3;
             const rowGap = (PEG_BOTTOM - PEG_TOP) / Math.max(1, lines - 1);
             const y = PEG_TOP + r * rowGap;
-            const totalWidth = (pegCount - 1) * (HORIZONTAL_SPACING / 2);
-            const startX = 50 - totalWidth;
+            const totalWidth = (pegCount - 1) * PEG_GAP;
+            const startX = 50 - totalWidth / 2;
             return (
               <div key={r} className="absolute left-0 right-0" style={{ top: `${y}%` }}>
                 {Array.from({ length: pegCount }).map((_, p) => {
-                  const x = startX + p * (HORIZONTAL_SPACING / 2);
+                  const x = startX + p * PEG_GAP;
                   return (
                     <div
                       key={p}
