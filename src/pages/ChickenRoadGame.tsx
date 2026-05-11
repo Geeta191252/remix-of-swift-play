@@ -351,8 +351,8 @@ const ChickenRoadGame = () => {
           style={{
             backgroundImage: `url(${asphaltImg})`,
             backgroundRepeat: "repeat",
-            backgroundSize: "72px 360px",
-            filter: "brightness(0.85) contrast(1.1) saturate(0.9)",
+            backgroundSize: "320px 480px",
+            filter: "brightness(0.7) contrast(1.05) saturate(0.6) hue-rotate(-20deg)",
           }}
         />
         <div
