@@ -220,6 +220,18 @@ const ChickenRoadGame = () => {
     setWinAmount(0);
   };
 
+  // Auto-reset to betting after a loss so the player lands back at the start
+  useEffect(() => {
+    if (phase !== "lost") return;
+    const t = setTimeout(() => {
+      setPhase("betting");
+      setCurrentLane(0);
+      setCarLane(null);
+      setWinAmount(0);
+    }, 2200);
+    return () => clearTimeout(t);
+  }, [phase]);
+
   const fmt = (n: number) =>
     activeWallet === "dollar" ? `${n.toFixed(2)} $` : `${n.toFixed(2)} ⭐`;
   const potentialWin = currentLane > 0 ? selectedBet * currentMultiplier : selectedBet * nextMultiplier;
