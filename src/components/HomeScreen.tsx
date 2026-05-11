@@ -166,22 +166,20 @@ const HomeScreen = () => {
         ))}
       </div>
 
-      {/* Top Bar */}
+      {/* Top Bar — solid bg (no backdrop-blur) for smooth Android scroll */}
       <div className="sticky top-0 z-30 px-2 py-1.5 flex items-center justify-between gap-1.5" style={{
-        background: "linear-gradient(135deg, hsla(265, 55%, 25%, 0.95) 0%, hsla(280, 50%, 22%, 0.95) 100%)",
+        background: "linear-gradient(135deg, hsl(265, 55%, 22%) 0%, hsl(280, 50%, 19%) 100%)",
         borderBottom: "1px solid hsla(45, 80%, 55%, 0.15)",
-        backdropFilter: "blur(20px)",
-        boxShadow: "0 4px 30px hsla(260, 50%, 10%, 0.6)",
+        boxShadow: "0 4px 18px hsla(260, 50%, 8%, 0.5)",
       }}>
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-          {/* Dollar badge */}
+          {/* Dollar badge (static shadow) */}
           <motion.div
             whileTap={{ scale: 0.95 }}
-            animate={{ boxShadow: ["0 0 6px hsla(140,60%,45%,0.3)", "0 0 12px hsla(140,60%,45%,0.5)", "0 0 6px hsla(140,60%,45%,0.3)"] }}
-            transition={{ duration: 2, repeat: Infinity }}
             className="flex items-center gap-1 rounded-full px-2 py-1 shrink-0 cursor-pointer"
             style={{
               background: "linear-gradient(135deg, hsl(140 65% 42%), hsl(160 55% 38%))",
+              boxShadow: "0 0 10px hsla(140,60%,45%,0.4)",
             }}
           >
             <span className="text-[10px] font-black" style={{ color: "hsl(0 0% 100%)" }}>💲</span>
@@ -189,14 +187,13 @@ const HomeScreen = () => {
               {totalDollar.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </motion.div>
-          {/* Star badge */}
+          {/* Star badge (static shadow) */}
           <motion.div
             whileTap={{ scale: 0.95 }}
-            animate={{ boxShadow: ["0 0 6px hsla(40,90%,55%,0.3)", "0 0 12px hsla(40,90%,55%,0.5)", "0 0 6px hsla(40,90%,55%,0.3)"] }}
-            transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
             className="flex items-center gap-1 rounded-full px-2 py-1 shrink-0 cursor-pointer"
             style={{
               background: "linear-gradient(135deg, hsl(40 90% 50%), hsl(25 85% 45%))",
+              boxShadow: "0 0 10px hsla(40,90%,55%,0.4)",
             }}
           >
             <span className="text-[10px]">⭐</span>
