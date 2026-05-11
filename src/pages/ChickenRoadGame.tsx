@@ -328,11 +328,17 @@ const ChickenRoadGame = () => {
         <div
           className="absolute inset-0"
           style={{
-            background: `
-              radial-gradient(circle at 30% 20%, rgba(255,255,255,0.025), transparent 40%),
-              radial-gradient(circle at 70% 60%, rgba(255,255,255,0.02), transparent 50%),
-              linear-gradient(180deg, #232528 0%, #18191c 100%)
-            `,
+            backgroundImage: `url(${asphaltImg})`,
+            backgroundRepeat: "repeat",
+            backgroundSize: "240px 240px",
+            filter: "brightness(0.55) saturate(0.6)",
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.04), transparent 70%), linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.55) 100%)",
           }}
         />
 
@@ -343,32 +349,22 @@ const ChickenRoadGame = () => {
             className="shrink-0 relative"
             style={{
               width: "16%",
-              background: "linear-gradient(90deg, #1d1f22 0%, #16181b 100%)",
-              borderRight: "2px solid rgba(255,255,255,0.08)",
+              background:
+                "linear-gradient(90deg, #1d1f22 0%, #16181b 100%)",
+              borderRight: "3px solid rgba(255,255,255,0.12)",
+              boxShadow: "inset -8px 0 12px rgba(0,0,0,0.4)",
             }}
           >
-            {/* barriers */}
-            <div className="absolute left-1 top-[10%] flex flex-col gap-3">
+            <div className="absolute left-0 right-0 top-[8%] flex flex-col items-center gap-3 px-1">
               {[0, 1].map((i) => (
-                <div
+                <img
                   key={i}
-                  className="w-10 h-7 rounded-sm relative"
-                  style={{
-                    background:
-                      "repeating-linear-gradient(135deg, #f7c948 0 6px, #1a1d24 6px 12px)",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.5), inset 0 -2px 0 rgba(0,0,0,0.4)",
-                    border: "1px solid rgba(0,0,0,0.6)",
-                  }}
-                >
-                  <span
-                    className="absolute -top-1 left-1 h-1.5 w-1.5 rounded-full"
-                    style={{ background: "#fff6c2", boxShadow: "0 0 6px #ffd24a" }}
-                  />
-                  <span
-                    className="absolute -top-1 right-1 h-1.5 w-1.5 rounded-full"
-                    style={{ background: "#fff6c2", boxShadow: "0 0 6px #ffd24a" }}
-                  />
-                </div>
+                  src={barrierImg}
+                  alt=""
+                  className="w-full max-w-[58px] h-auto"
+                  style={{ filter: "drop-shadow(0 3px 6px rgba(0,0,0,0.7))" }}
+                  loading="lazy"
+                />
               ))}
             </div>
           </div>
