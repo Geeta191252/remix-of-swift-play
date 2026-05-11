@@ -604,12 +604,32 @@ const ChickenRoadGame = () => {
             </button>
           </div>
 
-          {/* Difficulty caption */}
-          <div className="flex-1 text-center px-1">
-            <div className="text-[12px] font-bold" style={{ color: "#eaecf2" }}>Difficulty</div>
-            <div className="text-[9px] leading-tight" style={{ color: "#7a8090" }}>
-              Chance of being<br />shot down
-            </div>
+          {/* Wallet toggle (replaces Difficulty caption) */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-1 px-1">
+            <button
+              onClick={() => setActiveWallet("dollar")}
+              className="w-full max-w-[110px] h-7 rounded-full text-[11px] font-bold flex items-center justify-center gap-1"
+              style={{
+                background: activeWallet === "dollar" ? "hsla(140,75%,40%,0.25)" : "#0d0f14",
+                border: `1px solid ${activeWallet === "dollar" ? "hsl(140 75% 50%)" : "#232735"}`,
+                color: activeWallet === "dollar" ? "hsl(140 80% 75%)" : "#7a8090",
+                boxShadow: activeWallet === "dollar" ? "0 0 8px hsla(140,75%,50%,0.4)" : "none",
+              }}
+            >
+              💲 {gameDollarBalance.toFixed(2)}
+            </button>
+            <button
+              onClick={() => setActiveWallet("star")}
+              className="w-full max-w-[110px] h-7 rounded-full text-[11px] font-bold flex items-center justify-center gap-1"
+              style={{
+                background: activeWallet === "star" ? "hsla(45,90%,50%,0.25)" : "#0d0f14",
+                border: `1px solid ${activeWallet === "star" ? "hsl(45 90% 55%)" : "#232735"}`,
+                color: activeWallet === "star" ? "hsl(45 95% 75%)" : "#7a8090",
+                boxShadow: activeWallet === "star" ? "0 0 8px hsla(45,90%,55%,0.4)" : "none",
+              }}
+            >
+              ⭐ {gameStarBalance.toLocaleString()}
+            </button>
           </div>
 
           {/* CASH OUT + GO stacked vertically */}
