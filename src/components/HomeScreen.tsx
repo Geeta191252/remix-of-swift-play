@@ -90,9 +90,13 @@ const HomeScreen = () => {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
+    // Only tick the countdown clock when there are tournaments with endsAt.
+    // Without this gate, every HomeScreen child re-renders every second on Android → flicker.
+    const hasTimedTournament = tournaments.some((t) => !!t.endsAt);
+    if (!hasTimedTournament) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [tournaments]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/tournaments/active`)
@@ -145,47 +149,37 @@ const HomeScreen = () => {
         }} />
       </div>
 
-      {/* Animated sparkle particles */}
+      {/* Static decorative sparkles — no infinite framer-motion to avoid Android repaint flicker */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-[1]">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
+        {[...Array(4)].map((_, i) => (
+          <div
             key={i}
-            animate={{
-              y: [0, -20, 10, 0],
-              x: [0, 10, -10, 0],
-              opacity: [0.3, 0.8, 0.3],
-              scale: [0.8, 1.2, 0.8],
-            }}
-            transition={{ duration: 3 + i, repeat: Infinity, delay: i * 0.5 }}
-            className="absolute rounded-full"
+            className="absolute rounded-full opacity-50"
             style={{
               width: `${4 + i * 2}px`,
               height: `${4 + i * 2}px`,
-              top: `${15 + i * 14}%`,
-              left: `${10 + i * 15}%`,
-              background: `radial-gradient(circle, hsla(${40 + i * 30}, 90%, 70%, 0.8), transparent)`,
-              boxShadow: `0 0 ${8 + i * 3}px hsla(${40 + i * 30}, 90%, 60%, 0.5)`,
+              top: `${15 + i * 20}%`,
+              left: `${10 + i * 22}%`,
+              background: `radial-gradient(circle, hsla(${40 + i * 30}, 90%, 70%, 0.7), transparent)`,
             }}
           />
         ))}
       </div>
 
-      {/* Top Bar */}
+      {/* Top Bar — solid bg (no backdrop-blur) for smooth Android scroll */}
       <div className="sticky top-0 z-30 px-2 py-1.5 flex items-center justify-between gap-1.5" style={{
-        background: "linear-gradient(135deg, hsla(265, 55%, 25%, 0.95) 0%, hsla(280, 50%, 22%, 0.95) 100%)",
+        background: "linear-gradient(135deg, hsl(265, 55%, 22%) 0%, hsl(280, 50%, 19%) 100%)",
         borderBottom: "1px solid hsla(45, 80%, 55%, 0.15)",
-        backdropFilter: "blur(20px)",
-        boxShadow: "0 4px 30px hsla(260, 50%, 10%, 0.6)",
+        boxShadow: "0 4px 18px hsla(260, 50%, 8%, 0.5)",
       }}>
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-          {/* Dollar badge */}
+          {/* Dollar badge (static shadow) */}
           <motion.div
             whileTap={{ scale: 0.95 }}
-            animate={{ boxShadow: ["0 0 6px hsla(140,60%,45%,0.3)", "0 0 12px hsla(140,60%,45%,0.5)", "0 0 6px hsla(140,60%,45%,0.3)"] }}
-            transition={{ duration: 2, repeat: Infinity }}
             className="flex items-center gap-1 rounded-full px-2 py-1 shrink-0 cursor-pointer"
             style={{
               background: "linear-gradient(135deg, hsl(140 65% 42%), hsl(160 55% 38%))",
+              boxShadow: "0 0 10px hsla(140,60%,45%,0.4)",
             }}
           >
             <span className="text-[10px] font-black" style={{ color: "hsl(0 0% 100%)" }}>💲</span>
@@ -193,14 +187,13 @@ const HomeScreen = () => {
               {totalDollar.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </motion.div>
-          {/* Star badge */}
+          {/* Star badge (static shadow) */}
           <motion.div
             whileTap={{ scale: 0.95 }}
-            animate={{ boxShadow: ["0 0 6px hsla(40,90%,55%,0.3)", "0 0 12px hsla(40,90%,55%,0.5)", "0 0 6px hsla(40,90%,55%,0.3)"] }}
-            transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
             className="flex items-center gap-1 rounded-full px-2 py-1 shrink-0 cursor-pointer"
             style={{
               background: "linear-gradient(135deg, hsl(40 90% 50%), hsl(25 85% 45%))",
+              boxShadow: "0 0 10px hsla(40,90%,55%,0.4)",
             }}
           >
             <span className="text-[10px]">⭐</span>
@@ -259,9 +252,8 @@ const HomeScreen = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="rounded-2xl p-3 flex items-center gap-3"
                 style={{
-                  background: "linear-gradient(135deg, hsla(0, 80%, 55%, 0.25), hsla(45, 80%, 50%, 0.15), hsla(280, 60%, 50%, 0.15))",
+                  background: "linear-gradient(135deg, hsl(0, 50%, 22%), hsl(45, 45%, 20%), hsl(280, 45%, 22%))",
                   border: "1px solid hsla(45, 70%, 55%, 0.2)",
-                  backdropFilter: "blur(10px)",
                 }}
               >
                 <motion.div
