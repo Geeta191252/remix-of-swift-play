@@ -51,7 +51,7 @@ const DIFFICULTY_CONFIG: Record<
     ring: "hsl(28 100% 68%)",
   },
   hardcore: {
-    multipliers: [1.61, 2.64, 6.72, 22.92, 99.53, 533.1, 3448.4, 26519, 239531, 2516310],
+    multipliers: [1.61, 2.77, 4.90, 8.67, 25.01, 117.7, 903.6, 11314, 231066, 2516310],
     crashBase: 0.45,
     label: "Hardcore",
     color: "hsl(0 85% 55%)",
