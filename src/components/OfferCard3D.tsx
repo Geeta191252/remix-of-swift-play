@@ -109,14 +109,14 @@ const OfferCard3D = ({ offer, onClaim, busy }: Props) => {
               )}
             </div>
 
-            {/* Strikethrough "regular price" + % OFF */}
+            {/* Strikethrough total = pay + bonus (auto) */}
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="text-base leading-none">{symbol}</span>
               <span
                 className="font-black text-lg line-through decoration-[3px]"
                 style={{ color: "hsl(0 0% 95%)", textDecorationColor: "hsl(0 90% 55%)", textShadow: "1px 1px 0 hsla(0,0%,0%,0.5)" }}
               >
-                {offer.getAmount}
+                {offer.payAmount + (isDollar ? bDol : bStar)}
               </span>
               {offer.valueLabel && (
                 <span
