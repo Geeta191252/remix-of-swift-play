@@ -111,8 +111,8 @@ const AdminPanel = () => {
     payAmount: "",
     payCurrency: "star" as "star" | "dollar",
     getAmount: "",
-    bonusLabel: "",
-    valueLabel: "",
+    bonusAmount: "", // always extra ⭐
+    discountPercent: "", // e.g. "80" → "80% OFF" badge + "80% VALUE" ribbon
   });
   const [creatingOffer, setCreatingOffer] = useState(false);
   const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
