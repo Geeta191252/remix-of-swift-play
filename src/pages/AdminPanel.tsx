@@ -107,6 +107,7 @@ const AdminPanel = () => {
   // Offers state
   const [offers, setOffers] = useState<AdminOffer[]>([]);
   const [offerForm, setOfferForm] = useState({
+    title: "",        // chosen from presets; auto-default if empty
     payAmount: "",
     payCurrency: "star" as "star" | "dollar",
     getAmount: "",
