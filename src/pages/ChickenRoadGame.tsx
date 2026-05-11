@@ -397,7 +397,7 @@ const ChickenRoadGame = () => {
             {/* Chicken on sidewalk (before first lane) */}
             {currentLane === 0 && phase !== "lost" && (
               <div className="absolute left-1/2 -translate-x-1/2 bottom-10 z-20">
-                <ChickenOnManhole />
+                <ChickenOnManhole jumpKey={currentLane} />
               </div>
             )}
           </div>
@@ -509,7 +509,7 @@ const ChickenRoadGame = () => {
                     {/* Chicken on this lane */}
                     {isCurrent && (
                       <div className="absolute left-1/2 -translate-x-1/2 bottom-10 z-20">
-                        <ChickenOnManhole />
+                        <ChickenOnManhole jumpKey={currentLane} />
                       </div>
                     )}
 
