@@ -146,7 +146,10 @@ const ChickenRoadGame = () => {
     const isHit = Math.random() < hitProb;
 
     if (isHit) {
-      setCarLane(stepIndex + 1);
+      const crashLane = stepIndex + 1;
+      // Move chicken onto the crash lane so the truck visually rolls over it
+      setCurrentLane(crashLane);
+      setCarLane(crashLane);
       setPhase("lost");
       if (soundRef.current) playLoseSound();
       reportGameResult({
