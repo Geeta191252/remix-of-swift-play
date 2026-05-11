@@ -372,162 +372,29 @@ const ChickenRoadGame = () => {
             transformStyle: "preserve-3d",
           }}
         >
-          {/* Sidewalk left (fixed) — 3D brick scene with trees & street lamp */}
+          {/* Sidewalk left (fixed) — 3D rendered scene background */}
           <div
             className="shrink-0 relative h-full overflow-hidden"
             style={{
-              width: "22%",
-              background:
-                "linear-gradient(180deg, #8a8d92 0%, #6e7176 55%, #5b5d62 100%)",
-              borderRight: "4px solid rgba(0,0,0,0.45)",
+              width: "24%",
+              backgroundImage: `url(${sidewalk3dImg})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center top",
+              backgroundRepeat: "no-repeat",
+              borderRight: "4px solid rgba(0,0,0,0.55)",
               boxShadow:
-                "inset -10px 0 16px rgba(0,0,0,0.45), inset 4px 0 10px rgba(255,255,255,0.06)",
+                "inset -10px 0 18px rgba(0,0,0,0.4), inset 4px 0 10px rgba(255,255,255,0.08)",
               zIndex: 5,
             }}
           >
-            {/* Brick pattern overlay */}
+            {/* Soft vignette for depth */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
-                backgroundImage: `
-                  linear-gradient(90deg, rgba(0,0,0,0.35) 1px, transparent 1px),
-                  linear-gradient(0deg, rgba(0,0,0,0.35) 1px, transparent 1px),
-                  linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.18) 100%)
-                `,
-                backgroundSize: "44px 22px, 44px 22px, 100% 100%",
-                backgroundPosition: "0 0, 22px 11px, 0 0",
-                mixBlendMode: "multiply",
-                opacity: 0.85,
+                background:
+                  "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.25) 100%)",
               }}
             />
-            {/* Brick offset rows (every other row shifted) */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage:
-                  "linear-gradient(180deg, transparent 0, transparent 11px, rgba(0,0,0,0.25) 11px, rgba(0,0,0,0.25) 12px, transparent 12px)",
-                backgroundSize: "100% 44px",
-              }}
-            />
-
-            {/* Street lamp at top */}
-            <div className="absolute -top-1 right-[-6px] z-10 pointer-events-none">
-              <div className="relative" style={{ width: 90, height: 180 }}>
-                {/* Vertical pole */}
-                <div
-                  className="absolute"
-                  style={{
-                    left: 30,
-                    top: 0,
-                    width: 12,
-                    height: 110,
-                    background:
-                      "linear-gradient(90deg, #44474d 0%, #8a8d93 45%, #2c2e33 100%)",
-                    borderRadius: 3,
-                    boxShadow: "2px 0 4px rgba(0,0,0,0.5)",
-                  }}
-                />
-                {/* Horizontal arm */}
-                <div
-                  className="absolute"
-                  style={{
-                    left: 30,
-                    top: 30,
-                    width: 56,
-                    height: 10,
-                    background:
-                      "linear-gradient(180deg, #8a8d93 0%, #44474d 50%, #2c2e33 100%)",
-                    borderRadius: 3,
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.5)",
-                  }}
-                />
-                {/* Lamp head */}
-                <div
-                  className="absolute"
-                  style={{
-                    left: 70,
-                    top: 36,
-                    width: 22,
-                    height: 14,
-                    background:
-                      "linear-gradient(180deg, #2c2e33 0%, #56595f 100%)",
-                    borderRadius: "3px 3px 6px 6px",
-                  }}
-                />
-                {/* Light glow */}
-                <div
-                  className="absolute"
-                  style={{
-                    left: 60,
-                    top: 48,
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    background:
-                      "radial-gradient(circle, rgba(255,230,140,0.65) 0%, rgba(255,200,80,0.25) 45%, transparent 75%)",
-                    filter: "blur(1px)",
-                  }}
-                />
-                {/* Pole base */}
-                <div
-                  className="absolute"
-                  style={{
-                    left: 24,
-                    top: 108,
-                    width: 24,
-                    height: 8,
-                    background:
-                      "linear-gradient(180deg, #6e7176 0%, #2c2e33 100%)",
-                    borderRadius: 3,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Tree 1 — top left */}
-            <div
-              className="absolute pointer-events-none"
-              style={{ left: "-18%", top: "8%", width: "70%", aspectRatio: "1" }}
-            >
-              <div
-                className="w-full h-full rounded-full"
-                style={{
-                  background:
-                    "radial-gradient(circle at 35% 30%, #6ec85a 0%, #4ea33b 45%, #2e6b22 100%)",
-                  boxShadow:
-                    "inset -8px -10px 14px rgba(0,0,0,0.45), 0 6px 10px rgba(0,0,0,0.5)",
-                }}
-              />
-              {/* Highlights */}
-              <div
-                className="absolute"
-                style={{
-                  left: "20%",
-                  top: "18%",
-                  width: "22%",
-                  height: "18%",
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.18)",
-                  filter: "blur(4px)",
-                }}
-              />
-            </div>
-
-            {/* Bush — bottom left */}
-            <div
-              className="absolute pointer-events-none"
-              style={{ left: "-12%", bottom: "10%", width: "55%", aspectRatio: "1" }}
-            >
-              <div
-                className="w-full h-full rounded-full"
-                style={{
-                  background:
-                    "radial-gradient(circle at 40% 35%, #7ad265 0%, #4ea33b 50%, #2c6320 100%)",
-                  boxShadow:
-                    "inset -6px -8px 12px rgba(0,0,0,0.4), 0 5px 8px rgba(0,0,0,0.5)",
-                }}
-              />
-            </div>
 
             {/* Chicken on sidewalk (before first lane) */}
             {currentLane === 0 && phase !== "lost" && (
