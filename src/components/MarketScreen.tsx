@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Clock, Sparkles, X, Copy } from "lucide-react";
+import { X, Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { getTelegram, requestInvoice } from "@/lib/telegram";
 import { useBalanceContext } from "@/contexts/BalanceContext";
 import { useEffect, useState } from "react";
+import OfferCard3D from "@/components/OfferCard3D";
 
 interface MarketScreenProps {
   onGoToWallet?: () => void;
