@@ -149,26 +149,18 @@ const HomeScreen = () => {
         }} />
       </div>
 
-      {/* Animated sparkle particles */}
+      {/* Static decorative sparkles — no infinite framer-motion to avoid Android repaint flicker */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-[1]">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
+        {[...Array(4)].map((_, i) => (
+          <div
             key={i}
-            animate={{
-              y: [0, -20, 10, 0],
-              x: [0, 10, -10, 0],
-              opacity: [0.3, 0.8, 0.3],
-              scale: [0.8, 1.2, 0.8],
-            }}
-            transition={{ duration: 3 + i, repeat: Infinity, delay: i * 0.5 }}
-            className="absolute rounded-full"
+            className="absolute rounded-full opacity-50"
             style={{
               width: `${4 + i * 2}px`,
               height: `${4 + i * 2}px`,
-              top: `${15 + i * 14}%`,
-              left: `${10 + i * 15}%`,
-              background: `radial-gradient(circle, hsla(${40 + i * 30}, 90%, 70%, 0.8), transparent)`,
-              boxShadow: `0 0 ${8 + i * 3}px hsla(${40 + i * 30}, 90%, 60%, 0.5)`,
+              top: `${15 + i * 20}%`,
+              left: `${10 + i * 22}%`,
+              background: `radial-gradient(circle, hsla(${40 + i * 30}, 90%, 70%, 0.7), transparent)`,
             }}
           />
         ))}
