@@ -524,14 +524,14 @@ const AdminPanel = () => {
           payAmount: payNum,
           payCurrency: offerForm.payCurrency,
           getAmount: getNum,
-          bonusLabel: offerForm.bonusLabel.trim(),
-          valueLabel: offerForm.valueLabel.trim(),
+          bonusLabel: offerForm.bonusAmount.trim() ? `+${offerForm.bonusAmount.trim()} ⭐` : "",
+          valueLabel: offerForm.discountPercent.trim() ? `${offerForm.discountPercent.trim()}% OFF` : "",
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       toast({ title: "Offer created ✅", description: `${offerForm.title} is now live in Market.` });
-      setOfferForm({ title: "", payAmount: "", payCurrency: "star", getAmount: "", bonusLabel: "", valueLabel: "" });
+      setOfferForm({ title: "", payAmount: "", payCurrency: "star", getAmount: "", bonusAmount: "", discountPercent: "" });
       fetchOffers();
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "Could not create offer." });
