@@ -107,6 +107,7 @@ const AdminPanel = () => {
   // Offers state
   const [offers, setOffers] = useState<AdminOffer[]>([]);
   const [offerForm, setOfferForm] = useState({
+    title: "",        // chosen from presets; auto-default if empty
     payAmount: "",
     payCurrency: "star" as "star" | "dollar",
     getAmount: "",
@@ -516,7 +517,7 @@ const AdminPanel = () => {
     const bonusDollarNum = parseFloat(offerForm.bonusDollar) || 0;
 
     // Auto title
-    const autoTitle = offerForm.payCurrency === "star" ? "STAR DEAL" : "MEGA DEAL";
+    const autoTitle = (offerForm.title || (offerForm.payCurrency === "star" ? "SPECIAL OFFER" : "MEGA DEAL")).trim();
 
     // Auto bonus label
     const bonusParts: string[] = [];
@@ -552,7 +553,7 @@ const AdminPanel = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       toast({ title: "Offer created ✅", description: `${autoTitle} is now live.` });
-      setOfferForm({ payAmount: "", payCurrency: "star", getAmount: "", bonusStar: "", bonusDollar: "" });
+      setOfferForm({ title: "", payAmount: "", payCurrency: "star", getAmount: "", bonusStar: "", bonusDollar: "" });
       fetchOffers();
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "Could not create offer." });
@@ -1118,8 +1119,27 @@ const AdminPanel = () => {
               }}>
                 <h2 className="font-bold text-sm mb-3" style={{ color: "hsl(45 95% 70%)" }}>🎁 Create New Offer</h2>
                 <p className="text-[11px] mb-3" style={{ color: "hsl(260 30% 75%)" }}>
-                  Title aur % VALUE auto set ho jayenge. Sirf amounts bharo.
+                  % VALUE auto set hoga. Title niche se choose karo.
                 </p>
+
+                {/* Title preset picker */}
+                <p className="text-[10px] mb-1 font-bold" style={{ color: "hsl(45 90% 70%)" }}>Offer Title</p>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  {["SPECIAL OFFER", "MEGA DEAL", "STARTER PACK", "VIP BUNDLE", "DAILY DEAL"].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setOfferForm({ ...offerForm, title: t })}
+                      className="py-2 rounded-lg text-[11px] font-bold"
+                      style={{
+                        background: offerForm.title === t ? "hsla(45, 80%, 50%, 0.3)" : "hsla(260, 40%, 18%, 0.7)",
+                        border: offerForm.title === t ? "1px solid hsla(45, 85%, 55%, 0.7)" : "1px solid hsla(260, 40%, 30%, 0.5)",
+                        color: offerForm.title === t ? "hsl(45 95% 75%)" : "hsl(0 0% 75%)",
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="flex gap-2 mb-2">
                   {(["star", "dollar"] as const).map((c) => (
