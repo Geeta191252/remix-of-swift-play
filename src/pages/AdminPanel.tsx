@@ -117,6 +117,7 @@ const AdminPanel = () => {
   const [creatingOffer, setCreatingOffer] = useState(false);
   const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
   const [deletingOfferId, setDeletingOfferId] = useState<string | null>(null);
+  const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
 
   // Tournaments state
   const [tournaments, setTournaments] = useState<AdminTournament[]>([]);
