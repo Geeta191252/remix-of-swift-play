@@ -225,21 +225,12 @@ const ChickenRoadGame = () => {
       <div className="flex items-center justify-between gap-2 px-3 py-2.5" style={{ background: "#0a0a0f" }}>
         {/* Logo */}
         <button onClick={() => navigate("/")} className="shrink-0 active:scale-95 transition-transform">
-          <div
-            className="font-black text-[18px] leading-none tracking-tight px-2 py-1 rounded"
-            style={{
-              fontFamily: "Impact, 'Arial Black', sans-serif",
-              background: "linear-gradient(180deg, #ffe27a 0%, #e89a3c 45%, #b06b1a 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              filter: "drop-shadow(0 2px 0 rgba(0,0,0,0.9)) drop-shadow(0 0 6px rgba(255,150,30,0.5))",
-              transform: "skewX(-6deg)",
-            }}
-          >
-            CHICKEN
-            <br />
-            ROAD
-          </div>
+          <img
+            src={logoImg}
+            alt="Chicken Road"
+            className="h-11 w-auto"
+            style={{ filter: "drop-shadow(0 0 8px rgba(255,120,30,0.5))" }}
+          />
         </button>
 
         {/* How to play */}
