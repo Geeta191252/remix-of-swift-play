@@ -505,22 +505,35 @@ const ChickenRoadGame = () => {
                   </motion.div>
                 )}
 
+                {/* Barrier on crossed lanes */}
+                {isCrossed && !isCurrent && (
+                  <div className="absolute left-0 right-0 top-1/3 flex justify-center pointer-events-none z-20">
+                    <img
+                      src={barrierImg}
+                      alt=""
+                      className="w-[64px] h-auto"
+                      style={{ filter: "drop-shadow(0 6px 8px rgba(0,0,0,0.7))" }}
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+
                 {/* Multiplier marker at lane bottom */}
                 <div className="absolute left-0 right-0 bottom-10 flex justify-center pointer-events-none">
-                  {showSignboard ? (
+                  {isCurrent ? (
+                    <Signboard value={`${currentMultiplier.toFixed(2)}x`} />
+                  ) : showSignboard ? (
                     <Signboard value={`${mult.toFixed(2)}x`} />
-                  ) : (
+                  ) : !isCrossed ? (
                     <ManholeCover
                       label={
-                        isCrossed
-                          ? "✓"
-                          : mult >= 100
+                        mult >= 100
                           ? `${mult.toFixed(0)}x`
                           : `${mult.toFixed(2)}x`
                       }
-                      crossed={isCrossed}
+                      crossed={false}
                     />
-                  )}
+                  ) : null}
                 </div>
               </div>
             );
