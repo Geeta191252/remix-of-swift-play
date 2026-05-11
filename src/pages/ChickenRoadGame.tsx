@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Maximize2, Menu, X } from "lucide-react";
+import { BookOpen, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import chickenImg from "@/assets/chickenroad/chicken.png";
 import manholeImg from "@/assets/chickenroad/manhole.png";
@@ -68,6 +68,17 @@ const ChickenRoadGame = () => {
   useEffect(() => {
     soundRef.current = soundOn;
   }, [soundOn]);
+
+  // Auto full-screen inside Telegram Mini App
+  useEffect(() => {
+    const tg: any = (window as any).Telegram?.WebApp;
+    if (tg) {
+      try { tg.ready?.(); } catch {}
+      try { tg.expand?.(); } catch {}
+      try { tg.requestFullscreen?.(); } catch {}
+      try { tg.disableVerticalSwipes?.(); } catch {}
+    }
+  }, []);
 
   const { dollarBalance, starBalance, dollarWinning, starWinning, refreshBalance } =
     useBalanceContext();
@@ -273,19 +284,6 @@ const ChickenRoadGame = () => {
             ⭐ {gameStarBalance.toLocaleString()}
           </button>
         </div>
-
-        {/* Fullscreen */}
-        <button
-          onClick={() => {
-            const el = document.documentElement;
-            if (!document.fullscreenElement) el.requestFullscreen?.().catch(() => {});
-            else document.exitFullscreen?.().catch(() => {});
-          }}
-          className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "#15161c", border: "1px solid #2a2c36", color: "#cfd2dc" }}
-        >
-          <Maximize2 className="h-4 w-4" />
-        </button>
 
         {/* Menu */}
         <button
