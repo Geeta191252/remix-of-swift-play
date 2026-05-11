@@ -855,27 +855,38 @@ const ChickenOnManhole = ({ jumpKey = 0 }: { jumpKey?: number }) => (
     className="relative flex flex-col items-center justify-end"
     style={{ height: 130 }}
   >
-    {/* Ground contact shadow — sits under the feet so chicken looks grounded */}
+    {/* Ground contact shadow — shrinks at jump peak, expands on landing for grounded feel */}
     <motion.div
+      key={`shadow-${jumpKey}`}
       className="absolute pointer-events-none"
       style={{
         bottom: 2,
         width: 96,
         height: 18,
         background:
-          "radial-gradient(ellipse at center, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.45) 45%, rgba(0,0,0,0) 75%)",
+          "radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 75%)",
         filter: "blur(2px)",
         zIndex: 1,
       }}
-      animate={{ scaleX: [1, 0.92, 1], opacity: [0.9, 0.75, 0.9] }}
-      transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+      initial={{ scaleX: 1, opacity: 0.9 }}
+      animate={{
+        scaleX: [1, 0.45, 0.55, 1.15, 1],
+        scaleY: [1, 0.6, 0.7, 1.1, 1],
+        opacity: [0.9, 0.35, 0.45, 0.95, 0.9],
+      }}
+      transition={{ duration: 0.55, times: [0, 0.35, 0.55, 0.8, 1], ease: "easeOut" }}
     />
-    {/* 3D Chicken — jump on lane change + idle sway + blink squash */}
+    {/* 3D Chicken jump — arcs forward (right), face turns toward jump direction, lands grounded */}
     <motion.div
       key={jumpKey}
       className="relative z-10"
-      initial={{ y: -34, rotate: -14, scale: 1.1 }}
-      animate={{ y: [-34, -10, 0, -3, 0], rotate: [-14, -4, 0, 0, 0], scale: [1.1, 1.04, 1, 1, 1] }}
+      initial={{ y: -38, x: -18, rotate: -16, scale: 1.12 }}
+      animate={{
+        y: [-38, -14, 0, -4, 0],
+        x: [-18, -6, 0, 0, 0],
+        rotate: [-16, -8, 4, 0, 0],
+        scale: [1.12, 1.05, 1, 1, 1],
+      }}
       transition={{ duration: 0.55, times: [0, 0.45, 0.7, 0.85, 1], ease: "easeOut" }}
       style={{ transformOrigin: "bottom center" }}
     >
