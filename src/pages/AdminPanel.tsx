@@ -553,7 +553,7 @@ const AdminPanel = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       toast({ title: "Offer created ✅", description: `${autoTitle} is now live.` });
-      setOfferForm({ payAmount: "", payCurrency: "star", getAmount: "", bonusStar: "", bonusDollar: "" });
+      setOfferForm({ title: "", payAmount: "", payCurrency: "star", getAmount: "", bonusStar: "", bonusDollar: "" });
       fetchOffers();
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "Could not create offer." });
