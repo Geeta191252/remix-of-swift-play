@@ -30,7 +30,7 @@ const DIFFICULTY_CONFIG: Record<
   { multipliers: number[]; crashBase: number; label: string; color: string; ring: string }
 > = {
   easy: {
-    multipliers: [1.03, 1.07, 1.15, 1.25, 1.37, 1.52, 1.71, 1.93, 2.19, 2.51, 2.89, 3.35, 3.90, 4.57, 5.38, 6.36, 7.55, 9.01, 10.79, 12.98, 15.67, 19.00],
+    multipliers: [1.03, 1.07, 1.12, 1.17, 1.24, 1.33, 1.44, 1.58, 1.75, 1.96, 2.23, 2.55, 2.96, 3.48, 4.13, 4.97, 6.03, 7.42, 9.22, 11.60, 14.76, 19.00],
     crashBase: 0.05,
     label: "Easy",
     color: "hsl(140 75% 50%)",
